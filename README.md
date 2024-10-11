@@ -41,4 +41,4 @@ When client, subscriber, server or publisher Stop a connection, the other side w
 
 Go application:
 
-c== application:
+c++ application:
