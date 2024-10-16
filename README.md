@@ -16,7 +16,7 @@ Rpcmple is still newborn and only fits few cases, with the idea of growing it wh
   - the c++ application is the client, on Windows interfaces already available for named pipes and TCP connection
   - the Go application is the server, and supports whatever implements net.Conn interface
 ## How it works
-Base block of rpcmple is the data signature, which is a charachter string representing the data to be transferred. It supports the following data types:
+Base block of rpcmple is the data signature, which is a character string representing the data to be transferred. It supports the following data types:
 - 'i' for int64
 - 'I' for array of int64
 - 'u' for uint64

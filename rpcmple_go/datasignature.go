@@ -11,11 +11,22 @@ import (
 	"reflect"
 )
 
-type dataSignature []byte
+// DataSignature represents a slice of bytes used for defining the types of data elements in serialization processes.
+// The following data types are supported:
+//   - 'i' for int64
+//   - 'I' for array of int64
+//   - 'u' for uint64
+//   - 'U' for array of uint64
+//   - 'd' for double precision floating point number (64bit)
+//   - 'D' for array of double
+//   - 's' for UTF-8 encoded string
+//   - 'S' for array of UTF-8 encoded string
+//   - 'u' for variant, which van be any of the above
+type DataSignature []byte
 
-// ToBinary serializes the provided arguments to binary format and writes them to the given io.Writer based on the dataSignature.
+// ToBinary serializes the provided arguments to binary format and writes them to the given io.Writer based on the DataSignature.
 // Returns true if serialization is successful, false otherwise.
-func (ds dataSignature) ToBinary(body io.Writer, arguments ...any) bool {
+func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 	if len(ds) != len(arguments) {
 		log.Printf("error enconding argument array to binary: unexpected number of arguments: %d != %d\n", len(arguments), len(ds))
 		return false
@@ -193,9 +204,9 @@ func (ds dataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 	return true
 }
 
-// FromBinary deserializes data from the given io.Reader into the callbackValues based on the dataSignature.
+// FromBinary deserializes data from the given io.Reader into the callbackValues based on the DataSignature.
 // Returns true if deserialization is successful, false otherwise.
-func (ds dataSignature) FromBinary(mr io.Reader, callbackValues *[]any) bool {
+func (ds DataSignature) FromBinary(mr io.Reader, callbackValues *[]any) bool {
 	var err error
 
 	if cap(*callbackValues) < len(ds) {

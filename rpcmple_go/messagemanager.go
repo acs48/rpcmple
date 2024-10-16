@@ -12,22 +12,32 @@ import (
 	"net"
 )
 
-// MessageParser provides an interface for parsing, sending, and managing messages.
+// MessageParser provides an interface for parsing, sending, and managing messages. An implementation
+// of MessageParser must be passed to NewMessageManager to implement your custom message structure
 type MessageParser interface {
 
-	// ParseMessage parses the provided message bytes and returns true if parsing is successful; otherwise, false.
+	// ParseMessage gets called when a byte sequence of len returned by GetMessageLen is read from
+	// the Reader. User implementing this function shall decode the byte sequence and return
+	// true if successful. Returning false will stop the communication loop.
 	ParseMessage(message []byte) bool
 
-	// GetMessageLen returns the expected length of the message to be parsed.
+	// GetMessageLen gets called prior to read from Reader, for the MessageManager to know the len of the message.
+	// A full message can be of variable len and can be split in multiple sub-messages. GetMessageLen
+	// must return the len of the sub-message
 	GetMessageLen() int
 
-	// SendMessage sends a message using the provided buffer and returns true if successful, otherwise false.
+	// SendMessage gets called after a message or sub-message is read from Reader, and after the call to ParseMessage.
+	// It shall serialize to the Buffer argument the data to be sent to the other process.
+	// It can leave the buffer empty if no reply must be sent. Return false if an encoding error occur.
+	// Returning false will stop the communication loop.
 	SendMessage(*bytes.Buffer) bool
 
-	// IsRequester returns true if the parser instance is acting as a requester; otherwise, false.
+	// IsRequester gets called at the beginning of MessageManager loop. It tells the MessageManager
+	// if this process must send the first message
 	IsRequester() bool
 
-	// Stop stops the ongoing process and signals the parser to cease operations.
+	// Stop gets called by the MessageManager when the StopDataFlow is called or the other
+	// application is closing the connection. It can be used to clean up the parser.
 	Stop()
 }
 

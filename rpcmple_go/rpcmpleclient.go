@@ -11,6 +11,7 @@ import (
 	"sync"
 )
 
+// rpcClient handles remote procedure calls and manages the state of communications.
 type rpcClient struct {
 	remoteProcedures map[string]*RemoteProcedureSignature
 
@@ -26,8 +27,9 @@ type rpcClient struct {
 	command      *bytes.Buffer
 }
 
-// NewRPCClient initializes a new rpcClient instance.
-// It binds remote procedure signatures to the rpcClient and assigns unique IDs to each procedure.
+// NewRPCClient initializes a new rpcmple remote procedure call client instance.
+// User must provide a slice of RemoteProcedureSignature to be reported in the same order as they are
+// indicated in the server code, on the other process (functions are identified by index, the name is only for user reference).
 // Returns a pointer to the created rpcClient.
 func NewRPCClient(remoteProcedures []RemoteProcedureSignature) *rpcClient {
 	retV := &rpcClient{

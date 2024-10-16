@@ -12,7 +12,7 @@ import (
 )
 
 type dataSubscriber struct {
-	signature dataSignature
+	signature DataSignature
 
 	sectionLen uint16
 	sectionID  uint16
@@ -25,8 +25,8 @@ type dataSubscriber struct {
 	replyCallback func(bool, ...any)
 }
 
-// NewDataSubscriber creates a new data subscriber with the given dataSignature and reply callback function.
-func NewDataSubscriber(signature dataSignature, callback func(bool, ...any)) *dataSubscriber {
+// NewDataSubscriber creates a new data subscriber with the given DataSignature and reply callback function.
+func NewDataSubscriber(signature DataSignature, callback func(bool, ...any)) *dataSubscriber {
 	retV := &dataSubscriber{
 		signature: signature,
 

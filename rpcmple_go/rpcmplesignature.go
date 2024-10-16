@@ -19,8 +19,8 @@ type RemoteProcedureSignature struct {
 	bufferPool *sync.Pool
 
 	ProcedureName string
-	Arguments     dataSignature
-	Returns       dataSignature
+	Arguments     DataSignature
+	Returns       DataSignature
 	ReplyCallback func(bool, ...any)
 }
 
