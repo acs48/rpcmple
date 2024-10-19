@@ -1,6 +1,17 @@
-// Copyright 2024 Carlo Seghi github.com/acs48. All rights reserved.
+// Copyright (C) 2024 Carlo Seghi. All rights reserved.
+// Author Carlo Seghi github.com/acs48.
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Library General Public
+// License as published by the Free Software Foundation v3.0
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Library General Public License for more details.
+//
 // Use of this source code is governed by a GNU General Public License v3.0
-// license that can be found in the LICENSE file.
+// License that can be found in the LICENSE file.
 
 package rpcmple
 
@@ -41,7 +52,7 @@ type MessageParser interface {
 	Stop()
 }
 
-// MessageManager handles the management and flow of messages between a connection and a message parser.
+// MessageManager manages the flow of messages between a connection and a message parser.
 type MessageManager struct {
 	readBuffer  []byte
 	readMessage []byte

@@ -1,6 +1,17 @@
-// Copyright 2024 Carlo Seghi github.com/acs48. All rights reserved.
+// Copyright (C) 2024 Carlo Seghi. All rights reserved.
+// Author Carlo Seghi github.com/acs48.
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Library General Public
+// License as published by the Free Software Foundation v3.0
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Library General Public License for more details.
+//
 // Use of this source code is governed by a GNU General Public License v3.0
-// license that can be found in the LICENSE file.
+// License that can be found in the LICENSE file.
 
 package rpcmple
 
@@ -21,7 +32,7 @@ import (
 //   - 'D' for array of double
 //   - 's' for UTF-8 encoded string
 //   - 'S' for array of UTF-8 encoded string
-//   - 'u' for variant, which van be any of the above
+//   - 'u' for variant, which can be any of the above
 type DataSignature []byte
 
 // ToBinary serializes the provided arguments to binary format and writes them to the given io.Writer based on the DataSignature.

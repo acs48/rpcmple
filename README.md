@@ -34,6 +34,9 @@ The subscriber will publish a data block as described by its signature, and does
 The RPC client will send data described by an argument signature and receive return value described by a return signature.
 When client, subscriber, server or publisher Stop a connection, the other side will also stop looping and exit. Any connection error will stop loop on both ends.
 
+## Notes on c++ application
+Rpcmple for c++ is only tested o Windows environment using Microsoft Visual C++ Compiler (and the redists to be installed where application will run)
+It requires c++17. It comes with no dependencies. Just copy the header files in your project, include what you need and build.
 
 ## Examples
 
