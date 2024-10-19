@@ -56,7 +56,7 @@ public:
 };
 
 /* Class rpcServer implements messageManager for the rpc protocol.
- * Procedures must be added using the appendSignature method, in the same order as they are entered onthe other process
+ * Procedures must be added using the appendSignature method, in the same order as they are entered on the other process
  */
 class rpcServer : public messageManager {
 private:

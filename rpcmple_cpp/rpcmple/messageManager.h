@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <vector>
 #include <thread>
+#include <iostream>
 
 /* messageManager is a pure virtual class manages the flow of data with another rpcmple on a different process.
  * An implementation of messageManager must override the following methods:
@@ -74,11 +75,11 @@ private:
             std::vector<uint8_t> message;
             if(!writeMessage(message)) {
                 stopRequested=true;
-                std::wcerr << L"Messagemanager: error writing intial message; stopping flow" << std::endl;
+                std::wcerr << L"messageManager: error writing initial message; stopping flow" << std::endl;
             } else {
                 if(!message.empty()) {
                     if (!mConn->write(message)) {
-                        std::wcerr << L"Messagemanager: Error writing intial message"<<std::endl;
+                        std::wcerr << L"messageManager: Error writing initial message"<<std::endl;
                         stopRequested=true;
                     }
                 }
@@ -91,13 +92,13 @@ private:
 
             if(messageLength >0) {
                 if (!mConn->read(readBuffer, &bytesRead)) {
-                    std::wcerr << "Error reading from connection; stopping flow" << std::endl;
+                    std::wcerr << "messageManager: cannot read from stream, stopping flow" << std::endl;
                     break;
                 }
             }
 
             std::vector<uint8_t> fakeBuffer(readBuffer.begin(), readBuffer.begin() + static_cast<int>(bytesRead));
-            if(fakeBuffer.empty()) fakeBuffer.push_back('a');
+            if(fakeBuffer.empty()) fakeBuffer.push_back('a'); // todo this is totally wrong!
 
             while (!fakeBuffer.empty()) {
                 int transferredBytes = min(messageMissingBytes, static_cast<int>(fakeBuffer.size()));
@@ -118,12 +119,12 @@ private:
                     std::vector<uint8_t> message;
                     if(!writeMessage(message)) {
                         stopRequested=true;
-                        std::wcerr << L"RPC: error writing message; stopping flow" << std::endl;
+                        std::wcerr << L"RPC: error getting reply message: stopping flow" << std::endl;
                         break;
                     }
                     if(!message.empty()) {
                         if (!mConn->write(message)) {
-                            std::wcerr << L"RPC: Error writing message"<<std::endl;
+                            std::wcerr << L"RPC: Error writing reply message: stopping flow"<<std::endl;
                             stopRequested=true;
                             break;
                         }

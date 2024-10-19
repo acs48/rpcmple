@@ -17,6 +17,7 @@
 #define RPCMPLEUTILITY_H
 
 #include <cstdint>
+#include <cstring>
 
 
 #ifdef DEBUG_VERBOSE

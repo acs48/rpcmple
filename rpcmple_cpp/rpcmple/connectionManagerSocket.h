@@ -17,12 +17,15 @@
 #ifndef CONNECTIONMANAGERSOCKET_H
 #define CONNECTIONMANAGERSOCKET_H
 
+#include <iostream>
+
 #include "connectionManagerBase.h"
 #include "rpcmpleutility.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Link with ws2_32.lib
@@ -36,10 +39,10 @@ private:
     int serverPort;
 
 public:
-    connectionManagerSocketClient(std::string address, int port) : serverAddress(address), serverPort(port), connectSocket(INVALID_SOCKET) {}
+    connectionManagerSocketClient(std::string address, int port) : connectSocket(INVALID_SOCKET), serverAddress(std::move(address)), serverPort(port) {}
 
-    virtual ~connectionManagerSocketClient() {
-        close();
+    ~connectionManagerSocketClient() override {
+        connectionManagerSocketClient::close();
     }
 
     bool create() override {
@@ -77,7 +80,7 @@ public:
 
     bool write(std::vector<uint8_t>& bytes) override {
         int totalBytesSent = 0;
-        int bytesLeft = bytes.size();
+        unsigned int bytesLeft = bytes.size();
 
         while (totalBytesSent < bytes.size()) {
             int bytesSent = send(connectSocket, (const char*)bytes.data() + totalBytesSent, bytesLeft, 0);
@@ -94,6 +97,10 @@ public:
     bool read(std::vector<uint8_t>& bytes, uint32_t* pBytesRead) override {
         int bytesReceived = recv(connectSocket, (char*)bytes.data(), bytes.size(), 0);
         if (bytesReceived == SOCKET_ERROR) {
+            std::wcerr << "connectionManagerSocketClient: error reading from connection: " << bytesReceived << std::endl;
+            return false;
+        }
+        if(bytesReceived == 0) {
             return false;
         }
         *pBytesRead = bytesReceived;
