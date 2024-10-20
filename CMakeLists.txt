@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 project(rpcmple VERSION 0.0.2 LANGUAGES CXX)
 
-# Enable verbose makefile output
-set(CMAKE_VERBOSE_MAKEFILE ON)
-
-set(CMAKE_CXX_STANDARD 17)
-
 add_library(rpcmple INTERFACE)
 target_include_directories(rpcmple INTERFACE
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
