@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_library(rpcmple INTERFACE)
 target_include_directories(rpcmple INTERFACE
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rpcmple>"
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rpcmple_cpp/rpcmple>"
         "$<INSTALL_INTERFACE:include>"
 )
 # Set version information
