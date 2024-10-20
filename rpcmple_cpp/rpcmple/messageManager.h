@@ -98,7 +98,7 @@ private:
             }
 
             std::vector<uint8_t> fakeBuffer(readBuffer.begin(), readBuffer.begin() + static_cast<int>(bytesRead));
-            if(fakeBuffer.empty()) fakeBuffer.push_back('a'); // todo this is totally wrong!
+            //if(fakeBuffer.empty()) fakeBuffer.push_back('a'); // todo this is totally wrong!
 
             while (!fakeBuffer.empty()) {
                 int transferredBytes = min(messageMissingBytes, static_cast<int>(fakeBuffer.size()));
