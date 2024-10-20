@@ -4,8 +4,10 @@ project(rpcmple VERSION 0.0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 add_library(rpcmple INTERFACE)
-target_include_directories(rpcmple INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/rpcmple_cpp/rpcmple)
-
+target_include_directories(rpcmple INTERFACE
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rpcmple>"
+        "$<INSTALL_INTERFACE:include>"
+)
 # Set version information
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
