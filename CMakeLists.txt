@@ -5,9 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_library(rpcmple INTERFACE)
 target_include_directories(rpcmple INTERFACE
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/rpcmple_cpp/rpcmple>"
-        "$<INSTALL_INTERFACE:include>"
-)
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+        "$<INSTALL_INTERFACE:include>")
+
 # Set version information
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
@@ -17,7 +17,7 @@ write_basic_package_version_file(
 )
 
 # Install the library
-install(DIRECTORY rpcmple_cpp/rpcmple/ DESTINATION rpcmple)
+install(DIRECTORY include/ DESTINATION include)
 install(TARGETS rpcmple
         EXPORT rpcmpleTargets
         LIBRARY DESTINATION lib
