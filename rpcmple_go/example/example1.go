@@ -13,6 +13,9 @@
 //
 // Use of this source code is governed by a GNU General Public License v3.0
 // License that can be found in the LICENSE file.
+//
+// Listen for incoming connection on localhost:8080
+// On new connection, create an RPC client and call functions
 
 package main
 
