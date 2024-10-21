@@ -13,8 +13,8 @@
 // Use of this source code is governed by a GNU General Public License v3.0
 // License that can be found in the LICENSE file.
 
-#include "connectionManagerSocket.h"
-#include "rpcmpleServer.h"
+#include "rpcmple/connectionManagerSocket.h"
+#include "rpcmple/rpcmpleServer.h"
 
 
 class greetFunctionSignature : public localProcedureSignature {
