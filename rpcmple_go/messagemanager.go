@@ -1,3 +1,4 @@
+// ******  rpcmple for go  ******
 // Copyright (C) 2024 Carlo Seghi. All rights reserved.
 // Author Carlo Seghi github.com/acs48.
 //
@@ -210,7 +211,7 @@ func (mm *MessageManager) StartDataFlowNonBlocking() {
 					mm.stopRequest = true
 					return
 				}
-				err := binary.Write(mm.conn, binary.LittleEndian, message)
+				err := binary.Write(mm.conn, binary.LittleEndian, message.Bytes())
 				if err != nil {
 					log.Printf("messageManager: error writing bytes: %v", err)
 					mm.stopRequest = true
