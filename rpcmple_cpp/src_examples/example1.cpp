@@ -12,6 +12,9 @@
 //
 // Use of this source code is governed by a GNU General Public License v3.0
 // License that can be found in the LICENSE file.
+//
+// Connect to a tcp server on localhost:8080
+// Create a rpc server and wait for incoming requests, till the connection is alive
 
 #include "rpcmple/connectionManagerSocket.h"
 #include "rpcmple/rpcmpleServer.h"
