@@ -65,76 +65,91 @@ private:
     }
 
     void dataFlow() {
-
-        if(!isInitialized) {
+        if (!isInitialized) {
             init();
         }
 
-        if(isRequester) {
+        if (isRequester) {
             VERBOSE_PRINT(L"messageManager: waiting to write first message" << std::endl);
 
             std::vector<uint8_t> message;
-            if(!writeMessage(message)) {
-                stopRequested=true;
+            if (!writeMessage(message)) {
+                stopRequested = true;
                 std::wcerr << L"messageManager: error writing initial message; stopping flow" << std::endl;
             } else {
-                if(!message.empty()) {
+                if (!message.empty()) {
                     if (!mConn->write(message)) {
-                        std::wcerr << L"messageManager: Error writing initial message"<<std::endl;
-                        stopRequested=true;
+                        std::wcerr << L"messageManager: Error writing initial message" << std::endl;
+                        stopRequested = true;
                     }
                 }
             }
         }
 
-        while(!stopRequested) {
+        while (!stopRequested) {
             VERBOSE_PRINT("messageManager: entering main data flow" << std::endl);
             uint32_t bytesRead = 0;
 
-            if(messageLength >0) {
+            if (messageLength > 0) {
                 if (!mConn->read(readBuffer, &bytesRead)) {
                     std::wcerr << "messageManager: cannot read from stream, stopping flow" << std::endl;
                     break;
                 }
-            }
 
-            std::vector<uint8_t> fakeBuffer(readBuffer.begin(), readBuffer.begin() + static_cast<int>(bytesRead));
-            //if(fakeBuffer.empty()) fakeBuffer.push_back('a'); // todo this is totally wrong!
+                std::vector<uint8_t> fakeBuffer(readBuffer.begin(), readBuffer.begin() + static_cast<int>(bytesRead));
 
-            while (!fakeBuffer.empty()) {
-                int transferredBytes = min(messageMissingBytes, static_cast<int>(fakeBuffer.size()));
-                std::copy(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes, message.begin() + messageLastIdx);
+                while (!fakeBuffer.empty()) {
+                    int transferredBytes = min(messageMissingBytes, static_cast<int>(fakeBuffer.size()));
+                    std::copy(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes, message.begin() + messageLastIdx);
 
-                messageLastIdx += transferredBytes;
-                messageMissingBytes -= transferredBytes;
-                fakeBuffer.erase(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes);
+                    messageLastIdx += transferredBytes;
+                    messageMissingBytes -= transferredBytes;
+                    fakeBuffer.erase(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes);
 
-                if (messageMissingBytes == 0) {
-
-                    if(!parseMessage({message.begin(), message.begin() + messageLength})) {
-                        stopRequested=true;
-                        std::wcerr << L"Error parsing received message; stopping flow" << std::endl;
-                        break;
-                    }
-
-                    std::vector<uint8_t> message;
-                    if(!writeMessage(message)) {
-                        stopRequested=true;
-                        std::wcerr << L"RPC: error getting reply message: stopping flow" << std::endl;
-                        break;
-                    }
-                    if(!message.empty()) {
-                        if (!mConn->write(message)) {
-                            std::wcerr << L"RPC: Error writing reply message: stopping flow"<<std::endl;
-                            stopRequested=true;
+                    if (messageMissingBytes == 0) {
+                        if (!parseMessage({message.begin(), message.begin() + messageLength})) {
+                            stopRequested = true;
+                            std::wcerr << L"Error parsing received message; stopping flow" << std::endl;
                             break;
                         }
-                    }
 
-                    messageLastIdx = 0;
-                    messageLength = getMessageLen();
-                    messageMissingBytes = messageLength;
+                        std::vector<uint8_t> message;
+                        if (!writeMessage(message)) {
+                            stopRequested = true;
+                            std::wcerr << L"RPC: error getting reply message: stopping flow" << std::endl;
+                            break;
+                        }
+                        if (!message.empty()) {
+                            if (!mConn->write(message)) {
+                                std::wcerr << L"RPC: Error writing reply message: stopping flow" << std::endl;
+                                stopRequested = true;
+                                break;
+                            }
+                        }
+
+                        messageLastIdx = 0;
+                        messageLength = getMessageLen();
+                        messageMissingBytes = messageLength;
+                    }
                 }
+            } else {
+                std::vector<uint8_t> message;
+                if (!writeMessage(message)) {
+                    stopRequested = true;
+                    std::wcerr << L"RPC: error getting reply message: stopping flow" << std::endl;
+                    break;
+                }
+                if (!message.empty()) {
+                    if (!mConn->write(message)) {
+                        std::wcerr << L"RPC: Error writing reply message: stopping flow" << std::endl;
+                        stopRequested = true;
+                        break;
+                    }
+                }
+
+                messageLastIdx = 0;
+                messageLength = getMessageLen();
+                messageMissingBytes = messageLength;
             }
         }
         mConn->close();
