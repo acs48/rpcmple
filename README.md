@@ -1,7 +1,7 @@
 # rpcmple
 Rpcmple intends to be a simple and easy to use protocol for remote procedure call and message transfer between processes
 ## Why?
-You may be asking yourself, why do we need another framework for remote procedure call, when there are alreasy several others available, well tested and supported by big companies? When I had the same need, for prototyping or simple applications, every solution I have found was over-complicated because of dependencies, libraries to install, complexity building code, excessive overhead of features not necessary for my use case.
+You may be asking yourself, why do we need another framework for remote procedure call, when there are already several others available, well tested and supported by big companies? When I had the same need, for prototyping or simple applications, every solution I have found was over-complicated because of dependencies, libraries to install, complexity building code, excessive overhead of features not necessary for my use case.
 So I tried to build my taylored solution. It ended up general enough to be pheraps of use for others too.
 ## What is implemented so far
 Rpcmple is still newborn and only fits few cases, with the idea of growing it when new case is needed. Currently supports:
