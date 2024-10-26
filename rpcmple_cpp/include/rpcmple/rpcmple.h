@@ -14,25 +14,21 @@
 // Use of this source code is governed by a GNU General Public License v3.0
 // License that can be found in the LICENSE file.
 
-#ifndef RPCMPLEUTILITY_H
-#define RPCMPLEUTILITY_H
+#ifndef RPCMPLE_H
+#define RPCMPLE_H
 
 #include <cstdint>
 #include <cstring>
 
+#include "spdlog/spdlog.h"
 
-#ifdef DEBUG_VERBOSE
-#define VERBOSE_PRINT(x) std::wcerr << x
-#else
-#define VERBOSE_PRINT(x)
-#endif
+#include <codecvt>
 
-#ifdef BUFFER_SIZE_DEFINITION
-#define BUFFER_SIZE BUFFER_SIZE_DEFINITION
-#else
-#define BUFFER_SIZE error
-#endif
-
+// Function to convert std::wstring to UTF-8 encoded std::string
+std::string wstring_to_utf8(const std::wstring& wstr) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    return converter.to_bytes(wstr);
+}
 
 inline bool isMachineLittleEndian() {
     int num = 1;
@@ -159,4 +155,4 @@ inline int64_t bytesToInt64(const uint8_t bytes[8], bool isLittleEndian) {
 }
 
 
-#endif //RPCMPLEUTILITY_H
+#endif //RPCMPLE_H

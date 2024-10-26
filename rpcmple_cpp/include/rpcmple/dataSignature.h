@@ -25,8 +25,7 @@
 #include <codecvt>
 #include <iostream>
 
-#include "messageManager.h"
-#include "rpcmpleutility.h"
+#include "rpcmple.h"
 
 typedef std::variant<int64_t, uint64_t, double, std::wstring, std::vector<int64_t>, std::vector<uint64_t>, std::vector<double>, std::vector<std::wstring>> rpcmpleVariant;
 typedef std::vector<rpcmpleVariant> rpcmpleVariantVector;
@@ -128,6 +127,9 @@ public:
                     else if(std::holds_alternative<vector<std::wstring>>(rets[i])) dataType = 'S';
                     else return false;
 
+                    if(message.size() < replyOffset+1) {
+                        message.resize(message.size()+1);
+                    }
                     std::memcpy(message.data()+replyOffset, &dataType,1);
                     replyOffset += 1;
                     break;
@@ -142,7 +144,7 @@ public:
                         // todo
                     }
                     if(message.size() < replyOffset+8) {
-                        return false;
+                        message.resize(message.size()+8);
                     }
                     doubleToBytes(dblVal,message.data()+replyOffset,true);
                     replyOffset += 8;
@@ -157,7 +159,7 @@ public:
                     }
 
                     if(message.size() < replyOffset+2) {
-                        return false;
+                        message.resize(message.size()+2);
                     }
                     uint16_t dblArrSize = dblArr.size();
                     uint16ToBytes(dblArrSize,message.data()+replyOffset,true);
@@ -165,7 +167,7 @@ public:
 
                     for(int j=0;j<dblArrSize; j++) {
                         if(message.size() < replyOffset+8) {
-                            return false;
+                            message.resize(message.size()+8);
                         }
                         doubleToBytes(dblArr[j],message.data()+replyOffset,true);
                         replyOffset += 8;
@@ -180,7 +182,7 @@ public:
                         // todo
                     }
                     if(message.size() < replyOffset+8) {
-                        return false;
+                        message.resize(message.size()+8);
                     }
                     int64ToBytes(intVal,message.data()+replyOffset,true);
                     replyOffset += 8;
@@ -194,7 +196,8 @@ public:
                         // todo
                     }
                     if(message.size() < replyOffset+2) {
-                        return false;
+                        message.resize(message.size()+2);
+
                     }
                     uint16_t intArrSize = intArr.size();
                     uint16ToBytes(intArrSize,message.data()+replyOffset,true);
@@ -202,7 +205,7 @@ public:
 
                     for(int j=0;j<intArrSize; j++) {
                         if(message.size() < replyOffset+8) {
-                            return false;
+                            message.resize(message.size()+8);
                         }
                         int64ToBytes(intArr[j],message.data()+replyOffset,true);
                         replyOffset += 8;
@@ -217,7 +220,7 @@ public:
                         // todo
                     }
                     if(message.size() < replyOffset+8) {
-                        return false;
+                        message.resize(message.size()+8);
                     }
                     uint64ToBytes(uintVal,message.data()+replyOffset,true);
                     replyOffset += 8;
@@ -231,7 +234,7 @@ public:
                         // todo
                     }
                     if(message.size() < replyOffset+2) {
-                        return false;
+                        message.resize(message.size()+2);
                     }
                     uint16_t uintArrSize = uintArr.size();
                     uint16ToBytes(uintArrSize,message.data()+replyOffset,true);
@@ -239,7 +242,7 @@ public:
 
                     for(int j=0;j<uintArrSize; j++) {
                         if(message.size() < replyOffset+8) {
-                            return false;
+                            message.resize(message.size()+8);
                         }
                         uint64ToBytes(uintArr[j],message.data()+replyOffset,true);
                         replyOffset += 8;
@@ -256,14 +259,15 @@ public:
                     std::string strVal = converter.to_bytes(wstrVal);
 
                     if(message.size() < replyOffset+2) {
-                        return false;
+                        message.resize(message.size()+2);
+
                     }
                     uint16_t strSize = strVal.size();
                     uint16ToBytes(strSize,message.data()+replyOffset,true);
                     replyOffset+=2;
 
                     if(message.size() < replyOffset+strSize) {
-                        return false;
+                        message.resize(message.size()+strSize);
                     }
                     std::copy(strVal.begin(),strVal.end(),message.data()+replyOffset);
                     replyOffset += strSize;
@@ -278,7 +282,7 @@ public:
                     }
 
                     if(message.size() < replyOffset+2) {
-                        return false;
+                        message.resize(message.size()+2);
                     }
                     uint16_t arrSize = wstrArrVal.size();
                     uint16ToBytes(arrSize,message.data()+replyOffset,true);
@@ -289,14 +293,14 @@ public:
                         std::string strVal = converter.to_bytes(wstrVal);
 
                         if(message.size() < replyOffset+2) {
-                            return false;
+                            message.resize(message.size()+2);
                         }
                         uint16_t strSize = strVal.size();
                         uint16ToBytes(strSize,message.data()+replyOffset,true);
                         replyOffset+=2;
 
                         if(message.size() < replyOffset+strSize) {
-                            return false;
+                            message.resize(message.size()+strSize);
                         }
                         std::copy(strVal.begin(),strVal.end(),message.data()+replyOffset);
                         replyOffset += strSize;
@@ -478,12 +482,11 @@ public:
                     break;
                 }
                 default: {
-                    std::cerr << "invalid data type" << std::endl;
+                    spdlog::error("signature: invalid data type");
                     return false;
                 }
             }
         }
-
         return true;
     }
 };

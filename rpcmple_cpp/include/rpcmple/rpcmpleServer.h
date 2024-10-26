@@ -20,11 +20,12 @@
 #include "connectionManagerBase.h"
 #include "messageManager.h"
 #include "dataSignature.h"
-#include "rpcmpleutility.h"
+#include "rpcmple.h"
 
 #include <string>
 #include <utility>
 #include <cstdint>
+#include <codecvt>
 
 /* Class localProcedureSignature is a pure virtual class defining a procedure on local RPC server which can ce called
  * from another process.
@@ -69,11 +70,10 @@ private:
 
     uint16_t sectionLen;
     uint16_t sectionID;
-    int maxMessageSize;
 
     bool call(std::vector<uint8_t> &message) {
         if (procedureID < localProcedures.size()) {
-            VERBOSE_PRINT(L"Requested call to procedure " << procedureID << L" " << localProcedures[procedureID]->procedureName << std::endl);
+            spdlog::debug("rpcServer: requested call to procedure {} {}", procedureID, wstring_to_utf8(localProcedures[procedureID]->procedureName));
             localProcedureSignature *pProc = localProcedures[procedureID];
 
             rpcmpleVariantVector args(pProc->args.size());
@@ -81,31 +81,31 @@ private:
 
             rpcmpleVariantVector rets;
             if (!pProc->called(args, rets)) {
-                std::wcerr << L"Error calling RPC procedure " << procedureID << L" " << localProcedures[procedureID]->procedureName << std::endl;
+                spdlog::error("Error calling RPC procedure {} {}", procedureID ,wstring_to_utf8(localProcedures[procedureID]->procedureName));
                 return false;
             }
 
             if (rets.size() != pProc->rets.size()) {
                 callReturnsSerialized.clear();
                 callSuccess = false;
-                std::wcerr << "RPC procedure returned wrong number of variables" << std::endl;
+                spdlog::error("rpcServer: procedure returned wrong number of variables");
                 return false;
             }
 
             callSuccess = true;
-            callReturnsSerialized.resize(maxMessageSize);
+            //callReturnsSerialized.resize(maxMessageSize);
 
             pProc->rets.toBinary(rets, callReturnsSerialized);
         } else {
-            std::wcerr << "Invalid requested RPC procedure ID " << procedureID << std::endl;
+            spdlog::error("rpcServer: invalid requested RPC procedure ID {}" , procedureID);
             return false;
         }
         return true;
     }
 
 public:
-    rpcServer(int bufferSize, int messageSize, connectionManager *pConn)
-        : messageManager(bufferSize, messageSize, pConn, false) {
+    explicit rpcServer(connectionManager *pConn)
+        : messageManager(pConn, false) {
         localProcedures.clear();
         procedureID = -1;
         callSuccess = false;
@@ -113,7 +113,7 @@ public:
         sectionID = 0;
         sectionLen = 4;
 
-        maxMessageSize = messageSize;
+        //maxMessageSize = messageSize;
     }
 
     ~rpcServer() override = default;
@@ -125,7 +125,7 @@ public:
 
 
     bool parseMessage(std::vector<uint8_t> message) override {
-        VERBOSE_PRINT("RPC: parsing message" << std::endl);
+        spdlog::debug("rpcServer: parsing message");
         switch (sectionID) {
             case 0: {
                 uint32_t mVal = bytesToUint32(message.data(), true);
@@ -136,7 +136,7 @@ public:
                 } else {
                     std::vector<uint8_t> noV(0);
                     if (!this->call(noV)) {
-                        std::wcerr << L"Error calling RPC procedure " << procedureID << " with 0 arguments" << std::endl;
+                        spdlog::error("rpcServer: error calling RPC procedure {} with 0 arguments", procedureID);
                         return false;
                     }
                     sectionID = 0;
@@ -146,7 +146,7 @@ public:
             }
             case 1: {
                 if (!this->call(message)) {
-                    std::wcerr << "Error calling RPC procedure " << procedureID << " with arguments" << std::endl;
+                    spdlog::error("rpcServer: error calling RPC procedure {} with 0 arguments", procedureID);
                     return false;
                 }
                 sectionID = 0;
@@ -154,9 +154,8 @@ public:
                 break;
             }
             default: {
-                std::wcerr << "Error in RPC message parsing: invalid message section index" << std::endl;
+                spdlog::error("rpcServer: error in RPC message parsing: invalid message section index");
                 return false;
-                // todo
             }
         }
         return true;
@@ -172,13 +171,6 @@ public:
 
         uint16_t callSuccessInt = 0;
         if (callSuccess) callSuccessInt = 1;
-
-
-        if(2+callReturnsSerialized.size() > maxMessageSize) {
-            std::wcerr << L"RPC: message to write exceed max size" << std::endl;
-            retMessage.resize(0);
-            return false;
-        }
 
         retMessage.resize(2+callReturnsSerialized.size());
         unsigned int offset = 0;

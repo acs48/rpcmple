@@ -19,7 +19,7 @@
 #define CONNECTIONMANAGERPIPE_H
 
 #include "connectionManagerBase.h"
-#include "rpcmpleutility.h"
+#include "rpcmple.h"
 
 #include <atlbase.h>
 

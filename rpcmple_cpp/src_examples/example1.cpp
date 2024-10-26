@@ -18,67 +18,83 @@
 
 #include "rpcmple/connectionManagerSocket.h"
 #include "rpcmple/rpcmpleServer.h"
+#include "rpcmple/rpcmple.h"
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 
 class greetFunctionSignature : public localProcedureSignature {
 private:
 public:
-    explicit greetFunctionSignature()
-        : localProcedureSignature(L"Greet",{'s'},{'s'}) {}
-    ~greetFunctionSignature() override = default;
+	explicit greetFunctionSignature()
+		: localProcedureSignature(L"Greet", {'s'}, {'s'}) {
+	}
 
-    bool called(std::vector<rpcmpleVariant> &arguments, std::vector<rpcmpleVariant> &returns) override {
-        std::wstring strArg;
+	~greetFunctionSignature() override = default;
 
-        int i = 0;
-        if (!getRpcmpleVariantValue(arguments[i++], &strArg)) return false;
+	bool called(std::vector<rpcmpleVariant> &arguments, std::vector<rpcmpleVariant> &returns) override {
+		spdlog::info("example1: rpc server received call to function greet");
+		std::wstring strArg;
 
-        std::wstring retStr;
-        retStr.append(L"You said: ").append(strArg).append(L" Hello world to you too!");
+		int i = 0;
+		if (!getRpcmpleVariantValue(arguments[i++], &strArg)) return false;
 
-        returns.emplace_back(retStr);
+		std::wstring retStr;
+		retStr.append(L"You said: ").append(strArg).append(L" Hello world to you too!");
 
-        return true;
-    }
+		returns.emplace_back(retStr);
+
+		return true;
+	}
 };
 
 class sumFunctionSignature : public localProcedureSignature {
 private:
 public:
-    explicit sumFunctionSignature()
-        : localProcedureSignature(L"Sum",{'I'},{'i'}) {}
-    ~sumFunctionSignature() override = default;
+	explicit sumFunctionSignature()
+		: localProcedureSignature(L"Sum", {'I'}, {'i'}) {
+	}
 
-    bool called(std::vector<rpcmpleVariant> &arguments, std::vector<rpcmpleVariant> &returns) override {
-        std::vector<int64_t> intArrArg;
+	~sumFunctionSignature() override = default;
 
-        int i = 0;
-        if (!getRpcmpleVariantValue(arguments[i++], &intArrArg)) return false;
+	bool called(std::vector<rpcmpleVariant> &arguments, std::vector<rpcmpleVariant> &returns) override {
+		spdlog::info("example1: rpc server received call to function sum");
+		std::vector<int64_t> intArrArg;
 
-        int64_t retInt=0;
-        for(auto j=0; j<intArrArg.size();j++) {
-            retInt+=intArrArg[j];
-        }
+		int i = 0;
+		if (!getRpcmpleVariantValue(arguments[i++], &intArrArg)) return false;
 
-        returns.emplace_back(retInt);
+		int64_t retInt = 0;
+		for (auto j = 0; j < intArrArg.size(); j++) {
+			retInt += intArrArg[j];
+		}
 
-        return true;
-    }
+		returns.emplace_back(retInt);
+
+		return true;
+	}
 };
 
 
+int main(int argc, char **argv) {
 
-int main(int argc, char** argv) {
-    auto* mConn = new connectionManagerSocketClient("127.0.0.1",8080);
-    if(!mConn->create()) return -1;
+	auto console = spdlog::stdout_color_mt("rpcmple_cpp_example1");
+	spdlog::set_default_logger(console);
+	spdlog::set_level(spdlog::level::info);
 
-    auto* mServer = new rpcServer(1024,1024,mConn);
-    mServer->appendSignature(new greetFunctionSignature);
-    mServer->appendSignature(new sumFunctionSignature);
+	spdlog::info("example1: rpc server on cpp process connecting to a tcp server");
+
+	auto *mConn = new connectionManagerSocketClient("127.0.0.1", 8080);
+	if (!mConn->create()) return -1;
+
+	auto *mServer = new rpcServer(mConn);
+	mServer->appendSignature(new greetFunctionSignature);
+	mServer->appendSignature(new sumFunctionSignature);
 
 
-    mServer->startDataFlowBlocking();
+	mServer->startDataFlowBlocking();
 
-    delete mServer;
-    delete mConn;
+	delete mServer;
+	delete mConn;
 }

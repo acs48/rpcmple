@@ -21,7 +21,7 @@
 #include <iostream>
 
 #include "connectionManagerBase.h"
-#include "rpcmpleutility.h"
+#include "rpcmple.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -98,7 +98,7 @@ public:
     bool read(std::vector<uint8_t>& bytes, uint32_t* pBytesRead) override {
         int bytesReceived = recv(connectSocket, (char*)bytes.data(), bytes.size(), 0);
         if (bytesReceived == SOCKET_ERROR) {
-            std::wcerr << "connectionManagerSocketClient: error reading from connection: " << bytesReceived << std::endl;
+            spdlog::error("connectionManagerSocketClient: error reading from connection: {}", bytesReceived);
             return false;
         }
         if(bytesReceived == 0) {
