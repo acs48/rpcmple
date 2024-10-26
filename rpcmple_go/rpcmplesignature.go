@@ -19,7 +19,7 @@ package rpcmple
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -56,7 +56,7 @@ func (rps RemoteProcedureSignature) Call(arguments ...any) bool {
 	defer rps.bufferPool.Put(body)
 
 	if !rps.Arguments.ToBinary(body, arguments...) {
-		log.Printf("RPC: error serializing arguments from %v\n", rps.ProcedureName)
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Errorf("error serializing arguments from %v", rps.ProcedureName)
 		return false
 	}
 
@@ -65,12 +65,12 @@ func (rps RemoteProcedureSignature) Call(arguments ...any) bool {
 
 	err := binary.Write(rps.rc.command, binary.LittleEndian, headerMessage)
 	if err != nil {
-		log.Printf("error writing serialized arguments to buffer: %v\n", err)
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Errorf("error writing serialized arguments to buffer: %v", err)
 		return false
 	}
 	err = binary.Write(rps.rc.command, binary.LittleEndian, bodyArr)
 	if err != nil {
-		log.Printf("error writing serialized arguments to buffer: %v\n", err)
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Errorf("error writing serialized arguments to buffer: %v\n", err)
 		return false
 	}
 

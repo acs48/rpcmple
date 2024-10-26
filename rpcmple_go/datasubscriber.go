@@ -19,7 +19,7 @@ package rpcmple
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -66,14 +66,14 @@ func (ds *dataSubscriber) ParseMessage(message []byte) bool {
 		var section1 uint16
 
 		if len(message) != 2 {
-			log.Println("Subscriber: wrong message section length")
+			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Errorf(" wrong message section length")
 			return false
 		}
 
 		mb := bytes.NewReader(message)
 		err = binary.Read(mb, binary.LittleEndian, &section1)
 		if err != nil {
-			log.Println("Subscriber: error reading section: ", err)
+			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Error("error reading section: ", err)
 			return false
 		}
 
@@ -99,14 +99,14 @@ func (ds *dataSubscriber) ParseMessage(message []byte) bool {
 			}
 			ds.callbackValues = ds.callbackValues[:0]
 		} else {
-			log.Println("Subscriber: error deserializing data")
+			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Error("error deserializing data")
 			return false
 		}
 
 		ds.sectionLen = 2
 		ds.sectionID = 0
 	default:
-		log.Println("Subscriber: wrong message section ID")
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Error("wrong message section ID")
 		return false
 	}
 	return true

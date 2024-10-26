@@ -19,7 +19,7 @@ package rpcmple
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"sync"
 )
 
@@ -77,14 +77,14 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 		var section1 uint16
 
 		if len(message) != 2 {
-			log.Println("RPC: error parsing message: invalid length")
+			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error parsing message: invalid length")
 			return false
 		}
 
 		mb := bytes.NewReader(message)
 		err = binary.Read(mb, binary.LittleEndian, &section1)
 		if err != nil {
-			log.Println("RPC: error reading message: ", err)
+			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error reading message:", err)
 			return false
 		}
 
@@ -102,7 +102,7 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 				mr := bytes.NewReader(make([]byte, 0))
 
 				if success := mProc.Returns.FromBinary(mr, &rc.callbackValues); !success {
-					log.Println("RPC: error deserializing message")
+					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error deserializing message")
 					return false
 				}
 				if mProc.ReplyCallback != nil {
@@ -115,7 +115,7 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 				}
 				rc.callbackValues = rc.callbackValues[:0]
 			} else {
-				log.Println("RPC: error during message deserialization: procedure not found")
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error during message deserialization: procedure not found")
 				return false
 			}
 
@@ -127,7 +127,7 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 			mr := bytes.NewReader(message)
 
 			if success := mProc.Returns.FromBinary(mr, &rc.callbackValues); !success {
-				log.Println("RPC: error deserializing message")
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error deserializing message")
 				return false
 			}
 
@@ -135,13 +135,13 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 				mProc.ReplyCallback(rc.replySuccess, rc.callbackValues...)
 			}
 		} else {
-			log.Println("RPC: error during message deserialization: procedure not found")
+			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error during message deserialization: procedure not found")
 			return false
 		}
 		rc.sectionLen = 2
 		rc.sectionID = 0
 	default:
-		log.Println("RPC: error parsing message: invalid section id")
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error parsing message: invalid section id")
 		return false
 	}
 	return true
@@ -165,13 +165,13 @@ func (rc *rpcClient) SendMessage(message *bytes.Buffer) bool {
 	rc.myLock.Lock()
 	defer rc.myLock.Unlock()
 	if rc.command.Len() == 0 {
-		log.Println("RPC: invalid serialized arguments")
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("invalid serialized arguments")
 		return false
 	}
 
 	err := binary.Write(message, binary.LittleEndian, rc.command.Bytes())
 	if err != nil {
-		log.Println("RPC: error writing message: ", err)
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("RPC: error writing message:", err)
 		return false
 	}
 
@@ -192,6 +192,6 @@ func (rc *rpcClient) Call(remoteProcedure string, arguments ...any) bool {
 	if mProc, ok := rc.remoteProcedures[remoteProcedure]; ok {
 		return mProc.Call(arguments...)
 	}
-	log.Println("RPC: error during Call: procedure not found")
+	log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error during Call: procedure not found")
 	return false
 }
