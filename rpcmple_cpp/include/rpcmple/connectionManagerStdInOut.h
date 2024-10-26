@@ -20,17 +20,18 @@
 
 
 #include "connectionManagerBase.h"
-#include "rpcmpleutility.h"
+#include "rpcmple.h"
 
 #include <iostream>
 
 /* connectionManagerPipeClient implements connectionManager on Windows named pipes as dialer */
-class connectionManagerPipeClient : public connectionManager {
+class connectionManagerStdInOutClient : public connectionManager {
 private:
 
 public:
-    connectionManagerPipeClient() {}
-    virtual ~connectionManagerPipeClient()=default;
+    connectionManagerStdInOutClient() = default;
+
+    ~connectionManagerStdInOutClient() override =default;
 
     bool create() override {
         return true;
@@ -38,12 +39,30 @@ public:
 
     bool write(std::vector<uint8_t>& bytes) override {
         std::cout.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        if (!std::cout) {  // Stream state check
+            if (std::cout.fail()) {
+                spdlog::error("connectionManagerStdInOut: stream error occurred during write");
+            } else if (std::cout.bad()) {
+                spdlog::error("connectionManagerStdInOut: irrecoverable stream error occurred during write");
+            }
+            return false;
+        }
         return true;
     }
 
     bool read(std::vector<uint8_t>& bytes, uint32_t* pBytesRead) override {
+        spdlog::debug("connectionManagerStdInOut: reading data from stdin expecting {} bytes", bytes.size());
         std::cin.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
         *pBytesRead = std::cin.gcount();
+        if (std::cin.eof()) {
+            spdlog::debug("connectionManagerStdInOut: EOF reached");
+            return false;
+        }
+        if (std::cin.fail()) {
+            spdlog::error("connectionManagerStdInOut: stream error occurred");
+            return false;
+        }
+        spdlog::debug("connectionManagerStdInOut: red from stdin {} bytes", *pBytesRead);
         return true;
     }
 

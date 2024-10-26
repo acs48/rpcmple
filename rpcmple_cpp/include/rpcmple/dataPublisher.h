@@ -20,18 +20,17 @@
 
 #include "messageManager.h"
 #include "dataSignature.h"
-#include "rpcmpleutility.h"
+#include "rpcmple.h"
 
 #include <condition_variable>
 #include <mutex>
 #include <queue>
 #include <vector>
+#include <functional>
 
 class dataPublisher : public messageManager {
 private:
     dataSignature mSignature;
-
-    int maxMessageSize;
 
     std::mutex stackMtx;
     std::condition_variable cv;
@@ -39,9 +38,8 @@ private:
     bool stopWait;
 
 public:
-    dataPublisher(int bufferSize, int messageSize, connectionManager* pConn, std::vector<char> signature)
-    : messageManager(bufferSize, messageSize, pConn, true), mSignature(std::move(signature)) {
-        maxMessageSize = messageSize;
+    dataPublisher(connectionManager* pConn, std::vector<char> signature)
+    : messageManager(pConn, true), mSignature(std::move(signature)) {
         stopWait = false;
     }
     ~dataPublisher() override {
@@ -55,19 +53,20 @@ public:
     int getMessageLen() override {return 0;}
 
     bool writeMessage(std::vector<uint8_t> &retMessage) override {
-
         {
-            VERBOSE_PRINT("Publisher: locking connection resources and waiting for data" << std::endl);
+            spdlog::debug("Publisher: locking connection resources and waiting for data");
             std::unique_lock<std::mutex> lock(stackMtx);
             if(messageStack.empty()) {
                 cv.wait(lock, [this] { return (!this->messageStack.empty() || this->stopWait); });
             }
         }
-        VERBOSE_PRINT("Publisher: new data to publish, running on thread " << std::this_thread::get_id() << std::endl);
+        std::thread::id tid = std::this_thread::get_id();
+        auto hid = std::hash<std::thread::id>{}(tid);
+        spdlog::debug("Publisher: new data to publish, running on thread {}", hid);
 
 
         if (stopWait) {
-            VERBOSE_PRINT("Publisher: detected stop request" << std::endl);
+            spdlog::debug("Publisher: detected stop request");
             retMessage.resize(0);
             return false;
         }
@@ -76,7 +75,7 @@ public:
         if (!messageStack.empty()) {
             stackMtx.unlock();
             if (stopWait) {
-                VERBOSE_PRINT("Publisher: detected stop request" << std::endl);
+                spdlog::debug("Publisher: detected stop request");
                 retMessage.resize(0);
                 return false;
             }
@@ -86,12 +85,6 @@ public:
             stackMessage = std::move(messageStack.front());
             messageStack.pop();
             stackMtx.unlock();
-
-            if(stackMessage.size()+2>maxMessageSize) {
-                std::wcerr << L"Publisher: message to write exceed max size" << std::endl;
-                retMessage.resize(0);
-                return false;
-            }
 
             retMessage.resize(2+stackMessage.size());
             unsigned int offset = 0;
@@ -110,7 +103,7 @@ public:
 
 
         if (stopWait) {
-            VERBOSE_PRINT(L"Publisher: detected stop request" << std::endl);
+            spdlog::debug("Publisher: detected stop request");
             return false;
         }
         return true;
@@ -118,7 +111,7 @@ public:
 
     void stopParser() override {
         {
-            VERBOSE_PRINT("Publisher was requested to stop. Locking resources and notifying stop" << std::endl);
+            spdlog::debug("Publisher was requested to stop. Locking resources and notifying stop");
             std::lock_guard<std::mutex> lock(stackMtx);
             stopWait = true;
         }
@@ -127,18 +120,18 @@ public:
 
     bool publish(rpcmpleVariantVector &data) {
         if (data.size() != mSignature.size()) {
-            std::wcerr << L"Publisher error invalid number of arguments" << std::endl;
+            spdlog::error("publisher: invalid number of arguments");
             return false;
         }
 
-        std::vector<uint8_t> message(maxMessageSize);
+        std::vector<uint8_t> message(1024);
         if (!mSignature.toBinary(data, message)) {
-            std::wcerr << L"Publisher error translating variables to binary" << std::endl;
+            spdlog::error("publisher: error translating variables to binary" );
             return false;
         }
 
         {
-            VERBOSE_PRINT("Publisher is locking resources and pushing new message" << std::endl);
+            spdlog::debug("Publisher is locking resources and pushing new message");
             std::lock_guard<std::mutex> stackLock(stackMtx);
             messageStack.push(message);
         }
