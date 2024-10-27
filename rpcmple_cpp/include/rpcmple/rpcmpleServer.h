@@ -22,10 +22,13 @@
 #include "dataSignature.h"
 #include "rpcmple.h"
 
+#include  "spdlog/spdlog.h"
+
 #include <string>
 #include <utility>
 #include <cstdint>
-#include <codecvt>
+//#include <codecvt>
+#include <functional>
 
 /* Class localProcedureSignature is a pure virtual class defining a procedure on local RPC server which can ce called
  * from another process.
@@ -42,6 +45,8 @@
  * Implementation requires to override called method, where the custom implementation of the procedure resides
  */
 class localProcedureSignature {
+private:
+    std::function<bool(rpcmpleVariantVector &, rpcmpleVariantVector &)> callFunction;
 public:
     uint16_t id;
 
@@ -50,11 +55,18 @@ public:
     dataSignature rets;
 
     localProcedureSignature(std::wstring name, std::vector<char> arguments, std::vector<char> returns)
-        : procedureName(std::move(name)), args(std::move(arguments)), rets(std::move(returns)) { id = 0; }
-
+        : procedureName(std::move(name)), args(std::move(arguments)), rets(std::move(returns)), id(0) {}
+    localProcedureSignature(std::wstring name, std::vector<char> arguments, std::vector<char> returns, std::function<bool(rpcmpleVariantVector &, rpcmpleVariantVector &)> function)
+        : procedureName(std::move(name)), args(std::move(arguments)), rets(std::move(returns)), id(0), callFunction(std::move(function)) {}
     virtual ~localProcedureSignature() = default;
 
-    virtual bool called(rpcmpleVariantVector &arguments, rpcmpleVariantVector &returns) =0;
+    virtual bool called(rpcmpleVariantVector &arguments, rpcmpleVariantVector &returns) {
+        if(callFunction) {
+            return callFunction(arguments,returns);
+        }
+        spdlog::error("function {} called but no lambda passed to constructor nor called method ovveride", wstring_to_utf8(procedureName));
+        return false;
+    }
 };
 
 /* Class rpcServer implements messageManager for the rpc protocol.

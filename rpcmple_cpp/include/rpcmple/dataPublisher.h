@@ -64,15 +64,15 @@ public:
         auto hid = std::hash<std::thread::id>{}(tid);
         spdlog::debug("Publisher: new data to publish, running on thread {}", hid);
 
-
         if (stopWait) {
             spdlog::debug("Publisher: detected stop request");
             retMessage.resize(0);
             return false;
         }
 
+        unsigned int offset = 0;
         stackMtx.lock();
-        if (!messageStack.empty()) {
+        while (!messageStack.empty() && retMessage.size()<4096) {
             stackMtx.unlock();
             if (stopWait) {
                 spdlog::debug("Publisher: detected stop request");
@@ -86,8 +86,7 @@ public:
             messageStack.pop();
             stackMtx.unlock();
 
-            retMessage.resize(2+stackMessage.size());
-            unsigned int offset = 0;
+            retMessage.resize(offset+2+stackMessage.size());
 
             uint16_t callSuccessInt = 1;
             uint16_t headerVal = callSuccessInt * 32768 + stackMessage.size();
@@ -97,10 +96,10 @@ public:
             std::copy(stackMessage.begin(),stackMessage.end(),retMessage.data()+offset);
             offset += stackMessage.size();
 
-            retMessage.resize(offset);
-
+            stackMtx.lock();
         }
-
+        stackMtx.unlock();
+        cv.notify_all();
 
         if (stopWait) {
             spdlog::debug("Publisher: detected stop request");
@@ -138,6 +137,15 @@ public:
 
         cv.notify_all();
         return true;
+    }
+
+    void waitPublishComplete() {
+        {
+            spdlog::debug("Publisher: waiting until all messages are published");
+            std::unique_lock<std::mutex> lock(stackMtx);
+            if(messageStack.empty()) return;
+            cv.wait(lock, [this] {return this->messageStack.empty();});
+        }
     }
 };
 
