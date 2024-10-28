@@ -17,12 +17,18 @@
 package rpcmple_test
 
 import (
-	"fmt"
 	rpcmple "github.com/acs48/rpcmple/rpcmple_go"
+	log "github.com/sirupsen/logrus"
 	"net"
+	"os"
 )
 
 func ExampleNewRPCClient() {
+
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
+	log.SetLevel(log.InfoLevel)
+	logger := log.WithField("app", "rpcmple_go_example1")
 
 	type funcName int
 
@@ -38,18 +44,16 @@ func ExampleNewRPCClient() {
 
 	serv, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer serv.Close()
 	conn, err := serv.Accept()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer conn.Close()
 
 	manager := rpcmple.NewMessageManager(
-		1024,
-		1024,
 		conn,
 		rpcmple.NewRPCClient(mRProcedures),
 	)
@@ -59,55 +63,64 @@ func ExampleNewRPCClient() {
 	syncReply := make(chan bool)
 	mRProcedures[Greet].ReplyCallback = func(b bool, a ...any) {
 		if b {
-			fmt.Println("Greet: ", a[0].(string))
+			logger.Println("Greet:", a[0].(string))
 		}
 		syncReply <- b
 	}
 	mRProcedures[Greet].Call("Hello World")
 	callSuccess := <-syncReply
 	if callSuccess {
-		fmt.Println("Greet call success")
+		logger.Warnf("Greet call success")
 	} else {
-		fmt.Println("Greet call failed")
+		logger.Errorf("Greet call failed")
 	}
 
 	mRProcedures[Sum].ReplyCallback = func(b bool, a ...any) {
 		if b {
-			fmt.Println("Sum: ", a[0].(int64))
+			log.Println("Sum:", a[0].(int64))
 		}
 		syncReply <- b
 	}
 	mRProcedures[Sum].Call([]int64{1, 2, 3, 4, 5})
 	callSuccess = <-syncReply
 	if callSuccess {
-		fmt.Println("Sum call success")
+		logger.Warnf("Sum call success")
 	} else {
-		fmt.Println("Sum call failed")
+		logger.Errorf("Sum call failed")
 	}
 }
 
 func ExampleNewDataSubscriber() {
+
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
+	log.SetLevel(log.InfoLevel)
+
+	id := 0
 
 	serv, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		panic(err)
 	}
 	defer serv.Close()
+	defer serv.Close()
 	conn, err := serv.Accept()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	defer conn.Close()
+	// 	defer conn.Close()
+	//	If subscriber closes the connection, it will stop receiving from subscriber.
+	//	To ensure receiving all messages, keep connection open
+	//	Connection will be closed by publisher if no more data available
 
 	manager := rpcmple.NewMessageManager(
-		1024,
-		1024,
 		conn,
-		rpcmple.NewDataSubscriber([]byte{'i', 's', 's'}, func(b bool, a ...any) {
-			if b {
-				fmt.Println("ID: ", a[0].(int64))
-				fmt.Println("Name: ", a[1].(string))
-				fmt.Println("Address: ", a[2].(string))
+		rpcmple.NewDataSubscriber([]byte{'i', 's'}, func(success bool, values ...any) {
+			if !success {
+				log.Error("error getting data from publisher")
+			} else {
+				log.WithFields(log.Fields{"app": "rpcmple_go_example3", "msg_id": id}).Infoln(values[0], values[1])
+				id++
 			}
 		}),
 	)
