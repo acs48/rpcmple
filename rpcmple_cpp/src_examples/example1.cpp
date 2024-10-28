@@ -16,9 +16,10 @@
 // Connect to a tcp server on localhost:8080
 // Create a rpc server and wait for incoming requests, till the connection is alive
 
+#include "rpcmple/rpcmple.h"
 #include "rpcmple/connectionManagerSocket.h"
 #include "rpcmple/rpcmpleServer.h"
-#include "rpcmple/rpcmple.h"
+
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
