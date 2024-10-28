@@ -72,7 +72,7 @@ public:
 
         unsigned int offset = 0;
         stackMtx.lock();
-        while (!messageStack.empty() && retMessage.size()<4096) {
+        while (!messageStack.empty() && retMessage.size()<1024) {
             stackMtx.unlock();
             if (stopWait) {
                 spdlog::debug("Publisher: detected stop request");

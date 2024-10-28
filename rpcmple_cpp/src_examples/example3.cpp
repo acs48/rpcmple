@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 
 	std::vector<std::wstring> randStringList = {L"",L"apples",L"frogs",L"dinosaurs",L"stones",L"melons",L"pens",L"crocodiles",L"cars",L"lizards"};
 
-	for (int i=0;i<100;i++) {
+	for (int i=0;i<100000;i++) {
 		rpcmpleVariantVector arguments;
 
 		// Generate a random integer
