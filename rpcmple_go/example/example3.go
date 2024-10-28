@@ -34,13 +34,6 @@ func main() {
 
 	id := 0
 
-	type funcName int
-
-	const (
-		Greet funcName = iota
-		Sum
-	)
-
 	serv, err := npipe.Listen(`\\.\pipe\rpcmple_example3`)
 	if err != nil {
 		log.Fatal(err)
