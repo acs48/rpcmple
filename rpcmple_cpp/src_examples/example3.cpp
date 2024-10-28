@@ -2,19 +2,15 @@
 // Author Carlo Seghi github.com/acs48.
 //
 // This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Library General Public
-// License as published by the Free Software Foundation v3.0
+// modify it under the terms of the MIT license
 //
 // This library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Library General Public License for more details.
 //
-// Use of this source code is governed by a GNU General Public License v3.0
+// Use of this source code is governed by the MIT license
 // License that can be found in the LICENSE file.
-//
-// Connect to a named pipe (on windows only)
-// Create a publisher server and send 100 messages, then close
 
 #include "rpcmple/rpcmple.h"
 #include "rpcmple/connectionManagerPipe.h"
