@@ -90,7 +90,6 @@ int main(int argc, char **argv) {
 	mServer->appendSignature(new greetFunctionSignature);
 	mServer->appendSignature(new sumFunctionSignature);
 
-
 	mServer->startDataFlowBlocking();
 
 	delete mServer;
