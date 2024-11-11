@@ -111,6 +111,10 @@ func (mm *MessageManager) dataFlow() {
 		}
 
 		for len(fakeBuffer) > 0 {
+			if cap(mm.readMessage) < mm.messageLength {
+				mm.readMessage = make([]byte, mm.messageLength)
+			}
+			mm.readMessage = mm.readMessage[:mm.messageLength]
 			transferredBytes := copy(mm.readMessage[mm.messageLastIdx:mm.messageLength], fakeBuffer[:])
 			mm.messageLastIdx += transferredBytes
 			mm.messageMissingBytes -= transferredBytes
