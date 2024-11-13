@@ -85,12 +85,17 @@ public:
             messageStack.pop();
             stackMtx.unlock();
 
-            retMessage.resize(offset+2+stackMessage.size());
+            if(stackMessage.size()>16777216) {
+                spdlog::error("message size {} exceeding max allowed size 16777216", stackMessage.size());
+                return false;
+            }
 
-            uint16_t callSuccessInt = 1;
-            uint16_t headerVal = callSuccessInt * 32768 + stackMessage.size();
-            uint16ToBytes(headerVal,retMessage.data()+offset,true);
-            offset +=2;
+            retMessage.resize(offset+4+stackMessage.size());
+
+            uint32_t callSuccessInt = 1;
+            uint32_t headerVal = callSuccessInt * 16777216 + stackMessage.size();
+            uint32ToBytes(headerVal,retMessage.data()+offset,true);
+            offset +=4;
 
             std::copy(stackMessage.begin(),stackMessage.end(),retMessage.data()+offset);
             offset += stackMessage.size();

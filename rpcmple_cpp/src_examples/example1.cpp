@@ -15,7 +15,7 @@
 
 #include "rpcmple/rpcmple.h"
 #include "rpcmple/connectionManagerSocket.h"
-#include "rpcmple/rpcmpleServer.h"
+#include "rpcmple/rpcServer.h"
 
 
 #include "spdlog/spdlog.h"
@@ -33,13 +33,13 @@ public:
 
 	bool called(std::vector<rpcmpleVariant> &arguments, std::vector<rpcmpleVariant> &returns) override {
 		spdlog::info("example1: rpc server received call to function greet");
-		std::wstring strArg;
+		std::string strArg;
 
 		int i = 0;
 		if (!getRpcmpleVariantValue(arguments[i++], &strArg)) return false;
 
-		std::wstring retStr;
-		retStr.append(L"You said: ").append(strArg).append(L" Hello world to you too!");
+		std::string retStr;
+		retStr.append("You said: '").append(strArg).append("'; Hello world to you too!");
 
 		returns.emplace_back(retStr);
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
 	auto console = spdlog::stdout_color_mt("rpcmple_cpp_example1");
 	spdlog::set_default_logger(console);
-	spdlog::set_level(spdlog::level::info);
+	spdlog::set_level(spdlog::level::debug);
 
 	spdlog::info("example1: rpc server on cpp process connecting to a tcp server");
 

@@ -14,7 +14,7 @@
 
 #include "rpcmple/rpcmple.h"
 #include "rpcmple/connectionManagerStdInOut.h"
-#include "rpcmple/rpcmpleServer.h"
+#include "rpcmple/rpcServer.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
 
@@ -32,13 +32,13 @@ int main(int argc, char** argv) {
     auto* mServer = new rpcServer(mConn);
     mServer->appendSignature(new localProcedureSignature(L"Greet",{'s'},{'s'},[](rpcmpleVariantVector &arguments, rpcmpleVariantVector &returns) -> bool {
         spdlog::info("example2: rpc server received call to function greet");
-        std::wstring strArg;
+        std::string strArg;
 
         int i = 0;
         if (!getRpcmpleVariantValue(arguments[i++], &strArg)) return false;
 
-        std::wstring retStr;
-        retStr.append(L"You said: ").append(strArg).append(L" Hello world to you too!");
+        std::string retStr;
+        retStr.append("You said: '").append(strArg).append("'; Hello world to you too!");
 
         returns.emplace_back(retStr);
 
