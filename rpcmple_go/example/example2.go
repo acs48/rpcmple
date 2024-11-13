@@ -76,6 +76,10 @@ func main() {
 	executableName := "rpcmple_cpp_example2.exe"
 
 	executablePath := filepath.Join(exeDir, executableName)
+	log.Infoln(
+		"Starting client app: ",
+		executablePath,
+	)
 
 	cmd := exec.Command(executablePath)
 
