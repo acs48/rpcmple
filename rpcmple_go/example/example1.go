@@ -26,7 +26,7 @@ func main() {
 
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 	logger := log.WithField("app", "rpcmple_go_example1")
 
 	type funcName int

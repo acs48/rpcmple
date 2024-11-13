@@ -95,12 +95,15 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 				return false
 			}
 			dblArrVal := v.Interface().([]float64)
+			if len(dblArrVal) > 65536 {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("array of doubles too long, max 65536 elements\n")
+				return false
+			}
 			arrLen := uint16(len(dblArrVal))
 			err := binary.Write(body, binary.LittleEndian, arrLen)
 			if err != nil {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("could not serialize argument: %v: %v\n", arrLen, err)
 				return false
-				//panic(fmt.Errorf("could not serialize argument: %d", arrLen))
-				// TODO
 			}
 			err = binary.Write(body, binary.LittleEndian, dblArrVal)
 			if err != nil {
@@ -124,6 +127,10 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 				return false
 			}
 			intArrVal := v.Interface().([]int64)
+			if len(intArrVal) > 65536 {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("array of ints too long, max 65536 elements\n")
+				return false
+			}
 			arrLen := uint16(len(intArrVal))
 			err := binary.Write(body, binary.LittleEndian, arrLen)
 			if err != nil {
@@ -152,6 +159,10 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 				return false
 			}
 			uintArrVal := v.Interface().([]uint64)
+			if len(uintArrVal) > 65536 {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("array of uints too long, max 65536 elements\n")
+				return false
+			}
 			arrLen := uint16(len(uintArrVal))
 			err := binary.Write(body, binary.LittleEndian, arrLen)
 			if err != nil {
@@ -169,6 +180,10 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 				return false
 			}
 			strVal := v.String()
+			if len(strVal) > 65536 {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("string too long, max 65536 elements\n")
+				return false
+			}
 			strLen := uint16(len(strVal))
 			err := binary.Write(body, binary.LittleEndian, strLen)
 			if err != nil {
@@ -187,6 +202,10 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 			}
 
 			strArrVal := v.Interface().([]string)
+			if len(strArrVal) > 65536 {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("array of strings too long, max 65536 elements\n")
+				return false
+			}
 			strArrLen := uint16(len(strArrVal))
 			err := binary.Write(body, binary.LittleEndian, strArrLen)
 			if err != nil {
@@ -195,6 +214,10 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 			}
 
 			for _, strVal := range strArrVal {
+				if len(strVal) > 65536 {
+					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("string too long, max 65536 elements\n")
+					return false
+				}
 				strLen := uint16(len(strVal))
 				err := binary.Write(body, binary.LittleEndian, strLen)
 				if err != nil {

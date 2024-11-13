@@ -25,7 +25,7 @@ import (
 type dataSubscriber struct {
 	signature DataSignature
 
-	sectionLen uint16
+	sectionLen uint32
 	sectionID  uint16
 
 	publisherSuccess bool
@@ -43,7 +43,7 @@ func NewDataSubscriber(signature DataSignature, callback func(bool, ...any)) *da
 
 		callbackValues: make([]any, 50),
 
-		sectionLen: 2,
+		sectionLen: 4,
 		sectionID:  0,
 
 		replyCallback: callback,
@@ -62,9 +62,9 @@ func (ds *dataSubscriber) ParseMessage(message []byte) bool {
 
 	switch ds.sectionID {
 	case 0:
-		var section1 uint16
+		var section1 uint32
 
-		if len(message) != 2 {
+		if len(message) != 4 {
 			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Errorf(" wrong message section length")
 			return false
 		}
@@ -77,11 +77,11 @@ func (ds *dataSubscriber) ParseMessage(message []byte) bool {
 		}
 
 		ds.publisherSuccess = false
-		if section1/32768 == 1 {
+		if section1/16777216 == 1 {
 			ds.publisherSuccess = true
 		}
 
-		ds.sectionLen = section1 % 32768
+		ds.sectionLen = section1 % 16777216
 		ds.sectionID = 1
 
 	case 1:
@@ -92,17 +92,17 @@ func (ds *dataSubscriber) ParseMessage(message []byte) bool {
 				ds.replyCallback(ds.publisherSuccess, ds.callbackValues...)
 			}
 
-			ds.callbackValues = ds.callbackValues[0:cap(ds.callbackValues)]
-			for i := range ds.callbackValues {
-				ds.callbackValues[i] = nil
-			}
+			//ds.callbackValues = ds.callbackValues[0:cap(ds.callbackValues)]
+			//for i := range ds.callbackValues {
+			//	ds.callbackValues[i] = nil
+			//}
 			ds.callbackValues = ds.callbackValues[:0]
 		} else {
 			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Error("error deserializing data")
 			return false
 		}
 
-		ds.sectionLen = 2
+		ds.sectionLen = 4
 		ds.sectionID = 0
 	default:
 		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Error("wrong message section ID")

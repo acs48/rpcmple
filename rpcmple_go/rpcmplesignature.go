@@ -24,7 +24,7 @@ import (
 
 // RemoteProcedureSignature represents the signature of a remote procedure call.
 type RemoteProcedureSignature struct {
-	id uint16
+	id uint8
 	rc *rpcClient
 
 	bufferPool *sync.Pool
@@ -59,8 +59,13 @@ func (rps RemoteProcedureSignature) Call(arguments ...any) bool {
 		return false
 	}
 
+	if body.Len() > 16777216 {
+		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Errorf("serialized data size %d from %v is higher than maximum 16777216", body.Len(), rps.ProcedureName)
+		return false
+	}
+
 	bodyArr := body.Bytes()
-	headerMessage := uint32(rps.id)*65536 + uint32(len(bodyArr))
+	headerMessage := uint32(rps.id)*16777216 + uint32(len(bodyArr))
 
 	err := binary.Write(rps.rc.command, binary.LittleEndian, headerMessage)
 	if err != nil {

@@ -26,7 +26,7 @@ import (
 type rpcClient struct {
 	remoteProcedures map[string]*RemoteProcedureSignature
 
-	sectionLen     uint16
+	sectionLen     uint32
 	sectionID      uint16
 	lastRemoteProc string
 
@@ -50,12 +50,12 @@ func NewRPCClient(remoteProcedures []RemoteProcedureSignature) *rpcClient {
 
 		callbackValues: make([]any, 50),
 
-		sectionLen: 2,
+		sectionLen: 4,
 		sectionID:  0,
 	}
 
 	for i := range remoteProcedures {
-		remoteProcedures[i].id = uint16(i)
+		remoteProcedures[i].id = uint8(i)
 		remoteProcedures[i].rc = retV
 		retV.remoteProcedures[remoteProcedures[i].ProcedureName] = &remoteProcedures[i]
 	}
@@ -73,9 +73,9 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 
 	switch rc.sectionID {
 	case 0: // header section: uint16 storing success flag and length of body message
-		var section1 uint16
+		var section1 uint32
 
-		if len(message) != 2 {
+		if len(message) != 4 {
 			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error parsing message: invalid length")
 			return false
 		}
@@ -88,11 +88,11 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 		}
 
 		rc.replySuccess = false
-		if section1/32768 == 1 {
+		if section1/16777216 == 1 {
 			rc.replySuccess = true
 		}
 
-		rc.sectionLen = section1 % 32768
+		rc.sectionLen = section1 % 16777216
 
 		if rc.sectionLen > 0 {
 			rc.sectionID = 1
@@ -118,7 +118,7 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 				return false
 			}
 
-			rc.sectionLen = 2
+			rc.sectionLen = 4
 			rc.sectionID = 0
 		}
 	case 1:
@@ -137,7 +137,7 @@ func (rc *rpcClient) ParseMessage(message []byte) bool {
 			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error during message deserialization: procedure not found")
 			return false
 		}
-		rc.sectionLen = 2
+		rc.sectionLen = 4
 		rc.sectionID = 0
 	default:
 		log.WithFields(log.Fields{"app": "rpcmple_go", "func": "rpc"}).Error("error parsing message: invalid section id")
