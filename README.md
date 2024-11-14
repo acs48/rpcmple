@@ -11,7 +11,7 @@ Rpcmple is still newborn and only fits few cases, with the idea of growing it wh
   - the c++ application is the RPC server
   - the Go application is the RPC client
 - Publisher/Subscriber:
-  - the c++ applicatin is the publisher
+  - the c++ application is the publisher
   - the Go application is the subscriber
 - Connection protocols:
   - the c++ application is the client, on Windows interfaces already available for named pipes and TCP connection
@@ -26,12 +26,15 @@ Base block of rpcmple is the data signature, which is a character string represe
 - 'D' for array of double
 - 's' for UTF-8 encoded string
 - 'S' for array of UTF-8 encoded string
+- 'w' (c++ only) for UTF-8 encoded string marshaled as std::wstring
+- 'W' (c++ only) for array of UTF-8 encoded string marshaled as std::wstring
 - 'u' for variant, which van be any of the above
 
 Data is passed to the Call or Publish functions:
-- on c++ application, in form of std::vector<std::variant<>> (requires c++17). Supporteed data is int64_t, uint64_t, double, std::wstring. Arrays are std::vector of supported data
+- on c++ application, in form of std::vector<std::variant<>> (requires c++17). Supported data is int64_t, uint64_t, double, std::string, std::wstring. Arrays are std::vector of supported data
 - on Go application, in form of []any. Supported data is int64, uint46, float64, string. Arrays are slices of supported data
 
+Limit for strings is 65536 bytes. Limit for arrays is 65536 elements. Each signature cannot exceed 16777216 bytes. The RPC can support up to 256 procedures.
 ## Notes on c++ application
 Rpcmple for c++ is only tested o Windows environment using Microsoft Visual C++ Compiler (and the redists to be installed where application will run)
 It requires c++17. It comes with no dependencies. Just copy the header files in your project, include what you need and build.

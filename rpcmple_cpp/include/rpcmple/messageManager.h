@@ -167,10 +167,6 @@ public:
 
         isRequester=requester;
         mConn=pConn;
-
-        //readBuffer.resize(bufferSize);
-        //message.resize(messageSize);
-
     }
     virtual ~messageManager() {
         stopRequested=true;
