@@ -67,7 +67,7 @@ type MessageManager struct {
 	parser MessageParser
 }
 
-// NewMessageManager creates a new MessageManager with specified buffer sizes, connection, and message parser.
+// NewMessageManager creates a new MessageManager with specified connection and message parser.
 func NewMessageManager(conn io.ReadWriteCloser, parser MessageParser) *MessageManager {
 	mm := &MessageManager{
 		parser:      parser,
@@ -76,8 +76,6 @@ func NewMessageManager(conn io.ReadWriteCloser, parser MessageParser) *MessageMa
 		stopRequest: false,
 		readBuffer:  make([]byte, 0, 1024),
 		readMessage: make([]byte, 0, 1024),
-
-		//maxMessageLen: maxMessageSize,
 	}
 
 	mm.messageLastIdx = 0

@@ -92,10 +92,6 @@ func (ds *dataSubscriber) ParseMessage(message []byte) bool {
 				ds.replyCallback(ds.publisherSuccess, ds.callbackValues...)
 			}
 
-			//ds.callbackValues = ds.callbackValues[0:cap(ds.callbackValues)]
-			//for i := range ds.callbackValues {
-			//	ds.callbackValues[i] = nil
-			//}
 			ds.callbackValues = ds.callbackValues[:0]
 		} else {
 			log.WithFields(log.Fields{"app": "rpcmple_go", "func": "subscriber"}).Error("error deserializing data")
