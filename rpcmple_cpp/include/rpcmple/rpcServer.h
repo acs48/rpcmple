@@ -26,7 +26,6 @@
 #include <string>
 #include <utility>
 #include <cstdint>
-//#include <codecvt>
 #include <functional>
 
 /* Class localProcedureSignature is a pure virtual class defining a procedure on local RPC server which can ce called
@@ -40,6 +39,8 @@
  *   - 'D' for array of double
  *   - 's' for UTF-8 encoded string
  *   - 'S' for array of UTF-8 encoded string
+ *   - 'w' for wstring (will be converted to UTF-8)
+ *   - 'W' for array of wstring (will be converted to UTF-8)
  *   - 'u' for variant, which can be any of the above
  * Implementation requires to override called method, where the custom implementation of the procedure resides
  */
@@ -74,12 +75,12 @@ public:
 class rpcServer : public messageManager {
 private:
     std::vector<localProcedureSignature *> localProcedures;
-    uint16_t procedureID;
+    uint32_t procedureID;
 
     bool callSuccess;
     std::vector<uint8_t> callReturnsSerialized;
 
-    uint16_t sectionLen;
+    uint32_t sectionLen;
     uint16_t sectionID;
 
     bool call(std::vector<uint8_t> &message) {
@@ -140,8 +141,8 @@ public:
         switch (sectionID) {
             case 0: {
                 uint32_t mVal = bytesToUint32(message.data(), true);
-                procedureID = mVal / 65536;
-                sectionLen = mVal % 65536;
+                procedureID = mVal / 16777216;
+                sectionLen = mVal % 16777216;
                 if (sectionLen > 0) {
                     sectionID = 1;
                 } else {
@@ -157,7 +158,7 @@ public:
             }
             case 1: {
                 if (!this->call(message)) {
-                    spdlog::error("rpcServer: error calling RPC procedure {} with 0 arguments", procedureID);
+                    spdlog::error("rpcServer: error calling RPC procedure {}", procedureID);
                     return false;
                 }
                 sectionID = 0;
@@ -180,15 +181,20 @@ public:
             return true;
         }
 
-        uint16_t callSuccessInt = 0;
+        if(callReturnsSerialized.size()>16777216) {
+            spdlog::error("message size {} exceeding max allowed size 16777216", callReturnsSerialized.size());
+            return false;
+        }
+
+        uint32_t callSuccessInt = 0;
         if (callSuccess) callSuccessInt = 1;
 
-        retMessage.resize(2+callReturnsSerialized.size());
+        retMessage.resize(4+callReturnsSerialized.size());
         unsigned int offset = 0;
 
-        uint16_t headerVal = callSuccessInt * 32768 + callReturnsSerialized.size();
-        uint16ToBytes(headerVal, retMessage.data()+offset, true);
-        offset += 2;
+        uint32_t headerVal = callSuccessInt * 16777216 + callReturnsSerialized.size();
+        uint32ToBytes(headerVal, retMessage.data()+offset, true);
+        offset += 4;
 
         std::copy(callReturnsSerialized.begin(),callReturnsSerialized.end(),retMessage.data()+offset);
         offset += callReturnsSerialized.size();

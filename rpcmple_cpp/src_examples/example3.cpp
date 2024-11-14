@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     auto* mConn = new connectionManagerPipeClient("rpcmple_example3");
     if(!mConn->create()) return -1;
 
-    auto* mServer = new dataPublisher(mConn,{'i','s'});
+    auto* mServer = new dataPublisher(mConn,{'i','w'});
 
     mServer->startDataFlowNonBlocking();
 

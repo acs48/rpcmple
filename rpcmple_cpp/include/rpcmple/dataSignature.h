@@ -22,11 +22,11 @@
 #include <cstdint>
 #include <vector>
 #include <codecvt>
-#include <iostream>
+//#include <iostream>
 
 #include "rpcmple.h"
 
-typedef std::variant<int64_t, uint64_t, double, std::wstring, std::vector<int64_t>, std::vector<uint64_t>, std::vector<double>, std::vector<std::wstring>> rpcmpleVariant;
+typedef std::variant<int64_t, uint64_t, double, std::wstring, std::string, std::vector<int64_t>, std::vector<uint64_t>, std::vector<double>, std::vector<std::wstring>, std::vector<std::string>> rpcmpleVariant;
 typedef std::vector<rpcmpleVariant> rpcmpleVariantVector;
 
 inline bool getRpcmpleVariantValue(const rpcmpleVariant &val, int64_t* pRetVal) {
@@ -62,6 +62,15 @@ inline bool getRpcmpleVariantValue(const rpcmpleVariant &val, std::wstring* pRet
     }
 
     *pRetVal = std::get<std::wstring>(val);
+    return true;
+}
+
+inline bool getRpcmpleVariantValue(const rpcmpleVariant &val, std::string* pRetVal) {
+    if(!std::holds_alternative<std::string>(val)) {
+        return false;
+    }
+
+    *pRetVal = std::get<std::string>(val);
     return true;
 }
 
@@ -101,6 +110,15 @@ inline bool getRpcmpleVariantValue(const rpcmpleVariant &val, std::vector<std::w
     return true;
 }
 
+inline bool getRpcmpleVariantValue(const rpcmpleVariant &val, std::vector<std::string>* pRetVal) {
+    if(!std::holds_alternative<std::vector<std::string>>(val)) {
+        return false;
+    }
+
+    *pRetVal = std::get<std::vector<std::string>>(val);
+    return true;
+}
+
 class dataSignature : public std::vector<char> {
 private:
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
@@ -124,6 +142,8 @@ public:
                     else if(std::holds_alternative<vector<uint64_t>>(rets[i])) dataType = 'U';
                     else if(std::holds_alternative<std::wstring>(rets[i])) dataType = 's';
                     else if(std::holds_alternative<vector<std::wstring>>(rets[i])) dataType = 'S';
+                    else if(std::holds_alternative<std::wstring>(rets[i])) dataType = 'w';
+                    else if(std::holds_alternative<vector<std::wstring>>(rets[i])) dataType = 'W';
                     else return false;
 
                     if(message.size() < replyOffset+1) {
@@ -139,8 +159,8 @@ public:
                     double dblVal;
                     bool success = getRpcmpleVariantValue(rets[i],&dblVal);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
                     if(message.size() < replyOffset+8) {
                         message.resize(message.size()+8);
@@ -153,12 +173,17 @@ public:
                     std::vector<double> dblArr;
                     bool success = getRpcmpleVariantValue(rets[i],&dblArr);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
 
                     if(message.size() < replyOffset+2) {
                         message.resize(message.size()+2);
+                    }
+
+                    if(dblArr.size() > 65536) {
+                        spdlog::error("array size {} exceeding max allowed size 65536", dblArr.size());
+                        return false;
                     }
                     uint16_t dblArrSize = dblArr.size();
                     uint16ToBytes(dblArrSize,message.data()+replyOffset,true);
@@ -177,8 +202,8 @@ public:
                     int64_t intVal;
                     bool success = getRpcmpleVariantValue(rets[i],&intVal);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
                     if(message.size() < replyOffset+8) {
                         message.resize(message.size()+8);
@@ -191,12 +216,17 @@ public:
                     std::vector<int64_t> intArr;
                     bool success = getRpcmpleVariantValue(rets[i],&intArr);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
                     if(message.size() < replyOffset+2) {
                         message.resize(message.size()+2);
 
+                    }
+
+                    if(intArr.size() > 65536) {
+                        spdlog::error("array size {} exceeding max allowed size 65536", intArr.size());
+                        return false;
                     }
                     uint16_t intArrSize = intArr.size();
                     uint16ToBytes(intArrSize,message.data()+replyOffset,true);
@@ -215,8 +245,8 @@ public:
                     uint64_t uintVal;
                     bool success = getRpcmpleVariantValue(rets[i],&uintVal);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
                     if(message.size() < replyOffset+8) {
                         message.resize(message.size()+8);
@@ -229,11 +259,16 @@ public:
                     std::vector<uint64_t> uintArr;
                     bool success = getRpcmpleVariantValue(rets[i],&uintArr);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
                     if(message.size() < replyOffset+2) {
                         message.resize(message.size()+2);
+                    }
+
+                    if(uintArr.size() > 65536) {
+                        spdlog::error("array size {} exceeding max allowed size 65536", uintArr.size());
+                        return false;
                     }
                     uint16_t uintArrSize = uintArr.size();
                     uint16ToBytes(uintArrSize,message.data()+replyOffset,true);
@@ -248,18 +283,93 @@ public:
                     }
                     break;
                 }
-                case 's': {
+                case 'w': {
                     std::wstring wstrVal;
                     bool success = getRpcmpleVariantValue(rets[i],&wstrVal);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
                     std::string strVal = converter.to_bytes(wstrVal);
 
                     if(message.size() < replyOffset+2) {
                         message.resize(message.size()+2);
+                    }
 
+                    if(strVal.size() > 65536) {
+                        spdlog::error("string size {} exceeding max allowed size 65536", strVal.size());
+                        return false;
+                    }
+                    uint16_t strSize = strVal.size();
+                    uint16ToBytes(strSize,message.data()+replyOffset,true);
+                    replyOffset+=2;
+
+                    if(message.size() < replyOffset+strSize) {
+                        message.resize(message.size()+strSize);
+                    }
+                    std::copy(strVal.begin(),strVal.end(),message.data()+replyOffset);
+                    replyOffset += strSize;
+                    break;
+                }
+                case 'W': {
+                    std::vector<std::wstring> wstrArrVal;
+                    bool success = getRpcmpleVariantValue(rets[i],&wstrArrVal);
+                    if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
+                        return false;
+                    }
+
+                    if(message.size() < replyOffset+2) {
+                        message.resize(message.size()+2);
+                    }
+
+                    if(wstrArrVal.size() > 65536) {
+                        spdlog::error("array size {} exceeding max allowed size 65536", wstrArrVal.size());
+                        return false;
+                    }
+                    uint16_t arrSize = wstrArrVal.size();
+                    uint16ToBytes(arrSize,message.data()+replyOffset,true);
+                    replyOffset+=2;
+
+                    for(int j=0;j<arrSize;j++) {
+                        std::wstring wstrVal = wstrArrVal[j];
+                        std::string strVal = converter.to_bytes(wstrVal);
+
+                        if(message.size() < replyOffset+2) {
+                            message.resize(message.size()+2);
+                        }
+
+                        if(strVal.size() > 65536) {
+                            spdlog::error("string size {} exceeding max allowed size 65536", strVal.size());
+                            return false;
+                        }
+                        uint16_t strSize = strVal.size();
+                        uint16ToBytes(strSize,message.data()+replyOffset,true);
+                        replyOffset+=2;
+
+                        if(message.size() < replyOffset+strSize) {
+                            message.resize(message.size()+strSize);
+                        }
+                        std::copy(strVal.begin(),strVal.end(),message.data()+replyOffset);
+                        replyOffset += strSize;
+                    }
+                    break;
+                }
+                case 's': {
+                    std::string strVal;
+                    bool success = getRpcmpleVariantValue(rets[i],&strVal);
+                    if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
+                        return false;
+                    }
+
+                    if(message.size() < replyOffset+2) {
+                        message.resize(message.size()+2);
+                    }
+
+                    if(strVal.size() > 65536) {
+                        spdlog::error("string size {} exceeding max allowed size 65536", strVal.size());
+                        return false;
                     }
                     uint16_t strSize = strVal.size();
                     uint16ToBytes(strSize,message.data()+replyOffset,true);
@@ -273,26 +383,35 @@ public:
                     break;
                 }
                 case 'S': {
-                    std::vector<std::wstring> wstrArrVal;
-                    bool success = getRpcmpleVariantValue(rets[i],&wstrArrVal);
+                    std::vector<std::string> strArrVal;
+                    bool success = getRpcmpleVariantValue(rets[i],&strArrVal);
                     if(!success) {
+                        spdlog::error("error converting variant, signature / values mismatch");
                         return false;
-                        // todo
                     }
 
                     if(message.size() < replyOffset+2) {
                         message.resize(message.size()+2);
                     }
-                    uint16_t arrSize = wstrArrVal.size();
+
+                    if(strArrVal.size() > 65536) {
+                        spdlog::error("string size {} exceeding max allowed size 65536", strArrVal.size());
+                        return false;
+                    }
+                    uint16_t arrSize = strArrVal.size();
                     uint16ToBytes(arrSize,message.data()+replyOffset,true);
                     replyOffset+=2;
 
                     for(int j=0;j<arrSize;j++) {
-                        std::wstring wstrVal = wstrArrVal[j];
-                        std::string strVal = converter.to_bytes(wstrVal);
+                        std::string strVal = strArrVal[j];
 
                         if(message.size() < replyOffset+2) {
                             message.resize(message.size()+2);
+                        }
+
+                        if(strVal.size() > 65536) {
+                            spdlog::error("string size {} exceeding max allowed size 65536", strVal.size());
+                            return false;
                         }
                         uint16_t strSize = strVal.size();
                         uint16ToBytes(strSize,message.data()+replyOffset,true);
@@ -307,8 +426,8 @@ public:
                     break;
                 }
                 default: {
+                    spdlog::error("invalid signature {}", dataType);
                     return false;
-                    // TODO
                 }
             }
         }
@@ -338,11 +457,14 @@ public:
                         case 'I':
                         case 'u':
                         case 'U':
+                        case 'w':
+                        case 'W':
                         case 's':
                         case 'S':
                             dataType = byte;
                             break;
                         default:
+                            spdlog::error("invalid signature {}", byte);
                             return false;
                     }
                     break;
@@ -351,6 +473,7 @@ public:
             switch (dataType) {
                 case 'd': {
                     if(message.size()-messageOffset<8) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     double dblVal = bytesToDouble(message.data()+messageOffset,true);
@@ -361,6 +484,7 @@ public:
                 }
                 case 'D': {
                     if(message.size()-messageOffset<2) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     uint16_t arrSize = bytesToUint16(message.data()+messageOffset,true);
@@ -369,6 +493,7 @@ public:
                     std::vector<double> dblArrVal(arrSize);
                     for(auto j=0;j<dblArrVal.size();j++) {
                         if(message.size()-messageOffset<8) {
+                            spdlog::error("cannot deserialize message: incomplete");
                             return false;
                         }
                         dblArrVal[j] = bytesToDouble(message.data()+messageOffset,true);
@@ -380,6 +505,7 @@ public:
                 }
                 case 'i': {
                     if(message.size()-messageOffset<8) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     int64_t intVal = bytesToInt64(message.data()+messageOffset,true);
@@ -390,6 +516,7 @@ public:
                 }
                 case 'I': {
                     if(message.size()-messageOffset<2) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     uint16_t arrSize = bytesToUint16(message.data()+messageOffset,true);
@@ -398,6 +525,7 @@ public:
                     std::vector<int64_t> intArrVal(arrSize);
                     for (auto j=0;j<intArrVal.size();j++) {
                         if(message.size()-messageOffset<8) {
+                            spdlog::error("cannot deserialize message: incomplete");
                             return false;
                         }
                         intArrVal[j] = bytesToInt64(message.data()+messageOffset,true);
@@ -409,6 +537,7 @@ public:
                 }
                 case 'u': {
                     if(message.size()-messageOffset<8) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     uint64_t uintVal = bytesToUint64(message.data()+messageOffset,true);
@@ -419,6 +548,7 @@ public:
                 }
                 case 'U': {
                     if(message.size()-messageOffset<2) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     uint16_t arrSize = bytesToUint16(message.data()+messageOffset,true);
@@ -427,6 +557,7 @@ public:
                     std::vector<uint64_t> uintArrVal(arrSize);
                     for (auto j=0;j<uintArrVal.size();j++) {
                         if(message.size()-messageOffset<8) {
+                            spdlog::error("cannot deserialize message: incomplete");
                             return false;
                         }
                         uintArrVal[j] = bytesToUint64(message.data()+messageOffset,true);
@@ -436,14 +567,16 @@ public:
                     args[i]=uintArrVal;
                     break;
                 }
-                case 's': {
+                case 'w': {
                     if(message.size()-messageOffset<2) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     uint16_t strSize = bytesToUint16(message.data()+messageOffset,true);
                     messageOffset += 2;
 
                     if(message.size()-messageOffset<strSize) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     std::string byteVal(message.data()+messageOffset,message.data()+messageOffset+strSize);
@@ -453,8 +586,9 @@ public:
                     args[i]=strVal;
                     break;
                 }
-                case 'S': {
+                case 'W': {
                     if(message.size()-messageOffset<2) {
+                        spdlog::error("cannot deserialize message: incomplete");
                         return false;
                     }
                     uint16_t strArrSize = bytesToUint16(message.data()+messageOffset,true);
@@ -464,12 +598,14 @@ public:
 
                     for(int j=0;j<strArrSize;j++) {
                         if(message.size()-messageOffset<2) {
+                            spdlog::error("cannot deserialize message: incomplete");
                             return false;
                         }
                         uint16_t strSize = bytesToUint16(message.data()+messageOffset,true);
                         messageOffset += 2;
 
                         if(message.size()-messageOffset<strSize) {
+                            spdlog::error("cannot deserialize message: incomplete");
                             return false;
                         }
                         std::string byteVal(message.data()+messageOffset,message.data()+messageOffset+strSize);
@@ -480,6 +616,55 @@ public:
                     args[i]=strArr;
                     break;
                 }
+                case 's': {
+                    if(message.size()-messageOffset<2) {
+                        spdlog::error("cannot deserialize message: incomplete");
+                        return false;
+                    }
+                    uint16_t strSize = bytesToUint16(message.data()+messageOffset,true);
+                    messageOffset += 2;
+
+                    if(message.size()-messageOffset<strSize) {
+                        spdlog::error("cannot deserialize message: incomplete");
+                        return false;
+                    }
+                    std::string byteVal(message.data()+messageOffset,message.data()+messageOffset+strSize);
+                    messageOffset += strSize;
+
+                    args[i]=byteVal;
+                    break;
+                }
+                case 'S': {
+                    if(message.size()-messageOffset<2) {
+                        spdlog::error("cannot deserialize message: incomplete");
+                        return false;
+                    }
+                    uint16_t strArrSize = bytesToUint16(message.data()+messageOffset,true);
+                    messageOffset += 2;
+
+                    std::vector<std::string> strArr(strArrSize);
+
+                    for(int j=0;j<strArrSize;j++) {
+                        if(message.size()-messageOffset<2) {
+                            spdlog::error("cannot deserialize message: incomplete");
+                            return false;
+                        }
+                        uint16_t strSize = bytesToUint16(message.data()+messageOffset,true);
+                        messageOffset += 2;
+
+                        if(message.size()-messageOffset<strSize) {
+                            spdlog::error("cannot deserialize message: incomplete");
+                            return false;
+                        }
+                        std::string byteVal(message.data()+messageOffset,message.data()+messageOffset+strSize);
+                        strArr[j] = byteVal;
+                        messageOffset += strSize;
+                    }
+
+                    args[i]=strArr;
+                    break;
+                }
+
                 default: {
                     spdlog::error("signature: invalid data type");
                     return false;

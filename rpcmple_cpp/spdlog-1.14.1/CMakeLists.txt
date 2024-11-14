@@ -3,5 +3,7 @@ project(spdlog)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_library(spdlog_lib INTERFACE)
-target_include_directories(spdlog_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+if (NOT TARGET spdlog_lib)
+    add_library(spdlog_lib INTERFACE)
+    target_include_directories(spdlog_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+endif()

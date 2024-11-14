@@ -83,6 +83,17 @@ inline void uint64ToBytes(uint64_t dbl, uint8_t bytes[8], bool isLittleEndian) {
     std::memcpy(bytes, &val, sizeof val);
 }
 
+inline void uint32ToBytes(uint32_t dbl, uint8_t bytes[4], bool isLittleEndian) {
+    uint32_t val;
+    std::memcpy(&val, &dbl, sizeof val);
+
+    if (isLittleEndian != isMachineLittleEndian()) {
+        val = swapEndian32(val);
+    }
+
+    std::memcpy(bytes, &val, sizeof val);
+}
+
 inline void uint16ToBytes(uint16_t dbl, uint8_t bytes[2], bool isLittleEndian) {
     uint16_t val;
     std::memcpy(&val, &dbl, sizeof val);
