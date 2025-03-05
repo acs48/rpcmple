@@ -34,7 +34,7 @@ public:
         fullPipeName = R"(\\.\pipe\)";
         fullPipeName.append(name);
     }
-    virtual ~connectionManagerPipeClient()=default;
+    ~connectionManagerPipeClient() override =default;
 
     bool create() override {
        hPipe = CreateFile(
@@ -88,7 +88,7 @@ public:
         return true;
     }
 
-    bool close() {
+    bool close() override {
         BOOL res = CloseHandle(hPipe);
         if(!res) return false;
         return true;

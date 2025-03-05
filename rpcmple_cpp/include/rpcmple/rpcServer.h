@@ -48,7 +48,7 @@ class localProcedureSignature {
 private:
     std::function<bool(rpcmpleVariantVector &, rpcmpleVariantVector &)> callFunction;
 public:
-    uint16_t id;
+    uint32_t id;
 
     std::wstring procedureName;
     dataSignature args;
@@ -128,10 +128,17 @@ public:
         //maxMessageSize = messageSize;
     }
 
-    ~rpcServer() override = default;
+    ~rpcServer() override {
+        stopDataFlow();
+        joinMe();
+        for (auto &p : localProcedures) {
+            delete p;
+        }
+        localProcedures.clear();
+    };
 
     void appendSignature(localProcedureSignature *signature) {
-        signature->id = localProcedures.size();;
+        signature->id = localProcedures.size();
         localProcedures.push_back(signature);
     }
 

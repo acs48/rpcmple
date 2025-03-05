@@ -14,10 +14,8 @@
 // License that can be found in the LICENSE file.
 
 
-#ifndef CONNECTIONMANAGERSOCKET_H
-#define CONNECTIONMANAGERSOCKET_H
-
-#include <iostream>
+#ifndef CONNECTIONMANAGERSOCKETCLIENT_H
+#define CONNECTIONMANAGERSOCKETCLIENT_H
 
 #include "connectionManagerBase.h"
 #include "rpcmple.h"
@@ -49,11 +47,13 @@ public:
         WSADATA wsaData;
         int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
         if (result != 0) {
+            spdlog::error("SocketClient: WSAStartup failed with error: {}",result);
             return false;
         }
 
         connectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (connectSocket == INVALID_SOCKET) {
+            spdlog::error("SocketClient: error creating socket: {}",WSAGetLastError());
             WSACleanup();
             return false;
         }
@@ -63,6 +63,7 @@ public:
         serverAddr.sin_port = htons(serverPort);
 
         if (inet_pton(AF_INET, serverAddress.c_str(), &serverAddr.sin_addr) <= 0) {
+            spdlog::error("SocketServer: inet_pton failed with error: {}", WSAGetLastError());
             closesocket(connectSocket);
             WSACleanup();
             return false;
@@ -70,6 +71,7 @@ public:
 
         result = connect(connectSocket, (sockaddr*) &serverAddr, sizeof(serverAddr));
         if (result == SOCKET_ERROR) {
+            spdlog::error("SocketClient: connect failed with error: {}", WSAGetLastError());
             closesocket(connectSocket);
             WSACleanup();
             return false;
@@ -85,6 +87,7 @@ public:
         while (totalBytesSent < bytes.size()) {
             int bytesSent = send(connectSocket, (const char*)bytes.data() + totalBytesSent, bytesLeft, 0);
             if (bytesSent == SOCKET_ERROR) {
+                spdlog::error("SocketClient: send failed with error: {}", WSAGetLastError());
                 return false;
             }
             totalBytesSent += bytesSent;
@@ -97,7 +100,7 @@ public:
     bool read(std::vector<uint8_t>& bytes, uint32_t* pBytesRead) override {
         int bytesReceived = recv(connectSocket, (char*)bytes.data(), bytes.size(), 0);
         if (bytesReceived == SOCKET_ERROR) {
-            spdlog::error("connectionManagerSocketClient: error reading from connection: {}", bytesReceived);
+            spdlog::error("SocketClient: recv failed with error: {}", WSAGetLastError());
             return false;
         }
         if(bytesReceived == 0) {
@@ -117,4 +120,4 @@ public:
     }
 };
 
-#endif // CONNECTIONMANAGERSOCKET_H
+#endif // CONNECTIONMANAGERSOCKETCLIENT_H

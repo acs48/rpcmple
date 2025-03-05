@@ -43,6 +43,7 @@ public:
     }
     ~dataPublisher() override {
         stopDataFlow();
+        joinMe();
     };
 
     bool parseMessage(std::vector<uint8_t> message) override {
@@ -69,46 +70,35 @@ public:
             return false;
         }
 
-        unsigned int offset = 0;
-        stackMtx.lock();
-        while (!messageStack.empty() && retMessage.size()<1024) {
-            stackMtx.unlock();
-            if (stopWait) {
-                spdlog::debug("Publisher: detected stop request");
-                retMessage.resize(0);
-                return false;
+        {
+            std::lock_guard<std::mutex> lock(stackMtx);
+
+            unsigned int offset = 0;
+
+            while (!messageStack.empty() && retMessage.size()<1024) {
+                std::vector<uint8_t> stackMessage;
+                stackMtx.lock();
+                stackMessage = std::move(messageStack.front());
+                messageStack.pop();
+
+                if(stackMessage.size()>16777216) {
+                    spdlog::error("message size {} exceeding max allowed size 16777216", stackMessage.size());
+                    return false;
+                }
+
+                retMessage.resize(offset+4+stackMessage.size());
+
+                uint32_t callSuccessInt = 1;
+                uint32_t headerVal = callSuccessInt * 16777216 + stackMessage.size();
+                uint32ToBytes(headerVal,retMessage.data()+offset,true);
+                offset +=4;
+
+                std::copy(stackMessage.begin(),stackMessage.end(),retMessage.data()+offset);
+                offset += stackMessage.size();
             }
-
-            std::vector<uint8_t> stackMessage;
-            stackMtx.lock();
-            stackMessage = std::move(messageStack.front());
-            messageStack.pop();
-            stackMtx.unlock();
-
-            if(stackMessage.size()>16777216) {
-                spdlog::error("message size {} exceeding max allowed size 16777216", stackMessage.size());
-                return false;
-            }
-
-            retMessage.resize(offset+4+stackMessage.size());
-
-            uint32_t callSuccessInt = 1;
-            uint32_t headerVal = callSuccessInt * 16777216 + stackMessage.size();
-            uint32ToBytes(headerVal,retMessage.data()+offset,true);
-            offset +=4;
-
-            std::copy(stackMessage.begin(),stackMessage.end(),retMessage.data()+offset);
-            offset += stackMessage.size();
-
-            stackMtx.lock();
         }
-        stackMtx.unlock();
         cv.notify_all();
 
-        if (stopWait) {
-            spdlog::debug("Publisher: detected stop request");
-            return false;
-        }
         return true;
     }
 
@@ -145,10 +135,10 @@ public:
 
     void waitPublishComplete() {
         {
-            spdlog::debug("Publisher: waiting until all messages are published");
+            spdlog::debug("publisher: waiting until all messages are published");
             std::unique_lock<std::mutex> lock(stackMtx);
             if(messageStack.empty()) return;
-            cv.wait(lock, [this] {return this->messageStack.empty();});
+            cv.wait(lock, [this] {return this->messageStack.empty() || this->stopWait;});
         }
     }
 };

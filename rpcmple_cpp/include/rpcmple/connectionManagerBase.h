@@ -25,7 +25,7 @@
 /* connectionManager is pure virtual class defining operation for stream opening, closing, reaing and writing */
 class connectionManager {
 public:
-	connectionManager(){}
+	connectionManager()= default;
     virtual ~connectionManager()=default;
 
     virtual bool create()=0;

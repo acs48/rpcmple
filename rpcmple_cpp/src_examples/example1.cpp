@@ -14,7 +14,7 @@
 
 
 #include "rpcmple/rpcmple.h"
-#include "rpcmple/connectionManagerSocket.h"
+#include "rpcmple/connectionManagerSocketClient.h"
 #include "rpcmple/rpcServer.h"
 
 

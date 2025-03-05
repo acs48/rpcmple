@@ -20,9 +20,10 @@
 #include "rpcmple.h"
 
 #include <cstdint>
+#include <utility>
 #include <vector>
 #include <thread>
-#include <utility>
+#include <functional>
 
 /* messageManager is a pure virtual class manages the flow of data with another rpcmple on a different process.
  * An implementation of messageManager must override the following methods:
@@ -54,7 +55,10 @@ private:
     int messageLength;
     int messageMissingBytes;
 
-    std::thread dataFlowExecuter;
+    std::thread *dataFlowExecuter;
+    bool joined;
+
+    std::function<void()> onCloseCallback;
 
     void init() {
         messageLastIdx=0;
@@ -92,7 +96,7 @@ private:
             if (messageLength > 0) {
                 readBuffer.resize(messageMissingBytes);
                 if (!mConn->read(readBuffer, &bytesRead)) {
-                    spdlog::debug("messageManager: cannot read from pipe, stopping flow");
+                    spdlog::debug("messageManager: cannot read, stopping flow");
                     break;
                 }
 
@@ -157,7 +161,19 @@ private:
             }
         }
         mConn->close();
+        if(onCloseCallback) onCloseCallback();
         spdlog::warn("messageManager: flow stopped");
+    }
+
+protected:
+    void joinMe() {
+        if (dataFlowExecuter->joinable()) {
+            if (dataFlowExecuter->get_id() != std::this_thread::get_id())
+            {
+                dataFlowExecuter->join();
+                joined = true;
+            }
+        }
     }
 
 public:
@@ -167,22 +183,27 @@ public:
 
         isRequester=requester;
         mConn=pConn;
+
+        dataFlowExecuter = nullptr;
+        joined = false;
     }
-    virtual ~messageManager() {
-        stopRequested=true;
-        if(dataFlowExecuter.joinable()) {
-            dataFlowExecuter.join();
+    virtual ~messageManager()
+    {
+        if (dataFlowExecuter) {
+            joinMe();
+            delete dataFlowExecuter;
         }
-    }
+    };
 
     virtual bool parseMessage(std::vector<uint8_t> message) =0;
     virtual int getMessageLen() =0;
     virtual bool writeMessage(std::vector<uint8_t>& message) =0;
     virtual void stopParser()=0;
 
-    void startDataFlowNonBlocking() {
+    void startDataFlowNonBlocking(std::function<void()> onCloseCallback = nullptr) {
+        this->onCloseCallback = std::move(onCloseCallback);
         std::thread t(&messageManager::dataFlow, this);
-        dataFlowExecuter = move(t);
+        dataFlowExecuter = new std::thread( std::move(t));
     }
     void startDataFlowBlocking() {
         dataFlow();
@@ -191,9 +212,6 @@ public:
     void stopDataFlow() {
         stopRequested=true;
         stopParser();
-        if(dataFlowExecuter.joinable()) {
-            dataFlowExecuter.join();
-        }
     }
 };
 

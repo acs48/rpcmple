@@ -140,8 +140,8 @@ public:
                     else if(std::holds_alternative<vector<int64_t>>(rets[i])) dataType = 'I';
                     else if(std::holds_alternative<uint64_t>(rets[i])) dataType = 'u';
                     else if(std::holds_alternative<vector<uint64_t>>(rets[i])) dataType = 'U';
-                    else if(std::holds_alternative<std::wstring>(rets[i])) dataType = 's';
-                    else if(std::holds_alternative<vector<std::wstring>>(rets[i])) dataType = 'S';
+                    else if(std::holds_alternative<std::string>(rets[i])) dataType = 's';
+                    else if(std::holds_alternative<vector<std::string>>(rets[i])) dataType = 'S';
                     else if(std::holds_alternative<std::wstring>(rets[i])) dataType = 'w';
                     else if(std::holds_alternative<vector<std::wstring>>(rets[i])) dataType = 'W';
                     else return false;
@@ -149,7 +149,11 @@ public:
                     if(message.size() < replyOffset+1) {
                         message.resize(message.size()+1);
                     }
-                    std::memcpy(message.data()+replyOffset, &dataType,1);
+
+                    char  dataTypeW = dataType;
+                    if(dataTypeW=='w') dataTypeW='s';
+                    if(dataTypeW=='W') dataTypeW='S';
+                    std::memcpy(message.data()+replyOffset, &dataTypeW,1);
                     replyOffset += 1;
                     break;
             }
