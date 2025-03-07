@@ -18,9 +18,6 @@
 
 #include "spdlog/sinks/stdout_color_sinks.h"
 
-#include <mutex>
-#include <vector>
-
 int main(int argc, char** argv) {
 
     auto console = spdlog::stderr_color_mt("rpcmple_cpp_example4");
@@ -74,10 +71,10 @@ int main(int argc, char** argv) {
         }));
 
         if(mConn->create()) mServer->startDataFlowNonBlocking([mConn, mServer]() -> void
-        {
-            delete mConn;
-            delete mServer;
-        });
-
+            {
+                delete mConn;
+                delete mServer;
+            }
+        );
     }
 }

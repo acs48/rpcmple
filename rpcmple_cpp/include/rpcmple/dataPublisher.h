@@ -43,7 +43,6 @@ public:
     }
     ~dataPublisher() override {
         stopDataFlow();
-        joinMe();
     };
 
     bool parseMessage(std::vector<uint8_t> message) override {
@@ -77,7 +76,7 @@ public:
 
             while (!messageStack.empty() && retMessage.size()<1024) {
                 std::vector<uint8_t> stackMessage;
-                stackMtx.lock();
+
                 stackMessage = std::move(messageStack.front());
                 messageStack.pop();
 

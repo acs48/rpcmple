@@ -98,7 +98,7 @@ private:
             }
 
             if (rets.size() != pProc->rets.size()) {
-                callReturnsSerialized.clear();
+                callReturnsSerialized.resize(0);
                 callSuccess = false;
                 spdlog::error("rpcServer: procedure returned wrong number of variables");
                 return false;
@@ -130,7 +130,6 @@ public:
 
     ~rpcServer() override {
         stopDataFlow();
-        joinMe();
         for (auto &p : localProcedures) {
             delete p;
         }

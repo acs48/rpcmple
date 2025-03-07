@@ -25,6 +25,14 @@ add_executable(rpcmple_cpp_example4socketclient src_examples/example4socketclien
 target_include_directories(rpcmple_cpp_example4socketclient PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(rpcmple_cpp_example4socketclient spdlog_lib)
 
+add_executable(rpcmple_cpp_example5Publisher src_examples/example5PublisherTCP.cpp)
+target_include_directories(rpcmple_cpp_example5Publisher PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(rpcmple_cpp_example5Publisher spdlog_lib)
+
+add_executable(rpcmple_cpp_example5Subscriber src_examples/example5SubscriberTCP.cpp)
+target_include_directories(rpcmple_cpp_example5Subscriber PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(rpcmple_cpp_example5Subscriber spdlog_lib)
+
 if (NOT TARGET rpcmple_lib)
     add_library(rpcmple_lib INTERFACE)
     target_include_directories(rpcmple_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)

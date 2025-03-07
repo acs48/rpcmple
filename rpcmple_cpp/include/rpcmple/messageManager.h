@@ -55,9 +55,6 @@ private:
     int messageLength;
     int messageMissingBytes;
 
-    std::thread *dataFlowExecuter;
-    bool joined;
-
     std::function<void()> onCloseCallback;
 
     void init() {
@@ -166,15 +163,15 @@ private:
     }
 
 protected:
-    void joinMe() {
-        if (dataFlowExecuter->joinable()) {
-            if (dataFlowExecuter->get_id() != std::this_thread::get_id())
-            {
-                dataFlowExecuter->join();
-                joined = true;
-            }
-        }
-    }
+//    void joinMe() {
+//        if (dataFlowExecuter->joinable()) {
+//            if (dataFlowExecuter->get_id() != std::this_thread::get_id())
+//            {
+//                dataFlowExecuter->join();
+//                joined = true;
+//            }
+//        }
+//    }
 
 public:
     messageManager(connectionManager* pConn, bool requester) {
@@ -184,15 +181,15 @@ public:
         isRequester=requester;
         mConn=pConn;
 
-        dataFlowExecuter = nullptr;
-        joined = false;
+        //dataFlowExecuter = nullptr;
+        //joined = false;
     }
     virtual ~messageManager()
     {
-        if (dataFlowExecuter) {
-            joinMe();
-            delete dataFlowExecuter;
-        }
+//        if (dataFlowExecuter) {
+//            joinMe();
+//            //delete dataFlowExecuter;
+//        }
     };
 
     virtual bool parseMessage(std::vector<uint8_t> message) =0;
@@ -202,8 +199,9 @@ public:
 
     void startDataFlowNonBlocking(std::function<void()> onCloseCallback = nullptr) {
         this->onCloseCallback = std::move(onCloseCallback);
+
         std::thread t(&messageManager::dataFlow, this);
-        dataFlowExecuter = new std::thread( std::move(t));
+        t.detach();
     }
     void startDataFlowBlocking() {
         dataFlow();

@@ -86,7 +86,6 @@ public:
 
     ~rpcClient() override {
         stopDataFlow();
-        joinMe();
         for(auto &p : remoteProcedures) {
             delete p;
         }

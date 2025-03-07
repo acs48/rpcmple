@@ -72,6 +72,15 @@ namespace rpcmple {
         spdlog::info("SocketServer: server listening on port {}", port);
         return listenSocket;
     }
+
+    inline void stopTCPServer(SOCKET listenSocket) {
+        if (listenSocket != INVALID_SOCKET)
+        {
+            closesocket(listenSocket);
+            listenSocket = INVALID_SOCKET;
+            WSACleanup();
+        }
+    }
 }
 
 
@@ -155,14 +164,7 @@ public:
             clientSocket = INVALID_SOCKET;
         }
 
-        /*
-        if (listenSocket != INVALID_SOCKET) {
-            closesocket(listenSocket);
-            listenSocket = INVALID_SOCKET;
-        }
-        */
 
-        //WSACleanup();
         return true;
     }
 };
