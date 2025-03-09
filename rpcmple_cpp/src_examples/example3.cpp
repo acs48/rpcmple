@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "rpcmple/connectionManagerPipe.h"
+#include "connectionmanager/namedPipeClient.h"
 #include "rpcmple/dataPublisher.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -36,17 +36,17 @@ int main(int argc, char** argv) {
 	// Define a uniform integer distribution for integers between 1 and 100
 	std::uniform_int_distribution<> disInt(2, 9);
 
-    auto* mConn = new connectionManagerPipeClient("rpcmple_example3");
+    auto* mConn = new rpcmple::connectionManager::namedPipeClient("rpcmple_example3");
     if(!mConn->create()) return -1;
 
-    auto* mServer = new dataPublisher(mConn,{'i','w'});
+    auto* mServer = new rpcmple::dataPublisher(mConn,{'i','w'});
 
     mServer->startDataFlowNonBlocking();
 
 	std::vector<std::wstring> randStringList = {L"",L"apples",L"frogs",L"dinosaurs",L"stones",L"melons",L"pens",L"crocodiles",L"cars",L"lizards"};
 
 	for (int i=0;i<100000;i++) {
-		rpcmpleVariantVector arguments;
+		rpcmple::variantVector arguments;
 
 		// Generate a random integer
 		int64_t randomInt = disInt(gen);

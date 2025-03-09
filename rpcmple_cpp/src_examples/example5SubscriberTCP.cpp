@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "rpcmple/connectionManagerSocketServer.h"
+#include "connectionmanager/tcpSocketServer.h"
 #include "rpcmple/dataSubscriber.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -36,19 +36,19 @@ int main(int argc, char** argv) {
 	// Define a uniform integer distribution for integers between 1 and 100
 	std::uniform_int_distribution<> disInt(2, 9);
 
-	auto sServer = rpcmple::startTCPServer(8088);
+	auto sServer = rpcmple::connectionManager::startTCPServer(8088);
 
 	if(sServer) {
-		auto* mConn = new connectionManagerSocketServer(sServer);
+		auto* mConn = new rpcmple::connectionManager::tcpSocketServer(sServer);
 		int cc=0;
 
-	    auto* mServer = new dataSubscriber(mConn,{'i','s'},[&cc](rpcmpleVariantVector vals) -> void {
+	    auto* mServer = new rpcmple::dataSubscriber(mConn,{'i','s'},[&cc](rpcmple::variantVector vals) -> void {
 			int64_t intArg;
 	    	std::string strArg;
 
 	    	int i = 0;
-			if (!getRpcmpleVariantValue(vals[i++], &intArg)) return;
-			if (!getRpcmpleVariantValue(vals[i++], &strArg)) return;
+			if (!rpcmple::getVariantValue(vals[i++], &intArg)) return;
+			if (!rpcmple::getVariantValue(vals[i++], &strArg)) return;
 
 	    	spdlog::info("example5: subscriber received {}: {} {}", cc++, intArg, strArg);
 			return;
@@ -57,6 +57,6 @@ int main(int argc, char** argv) {
 		if(mConn->create()) mServer->startDataFlowBlocking();
 		delete mServer;
 		delete mConn;
-		rpcmple::stopTCPServer(sServer);
+		rpcmple::connectionManager::stopTCPServer(sServer);
 	}
 }

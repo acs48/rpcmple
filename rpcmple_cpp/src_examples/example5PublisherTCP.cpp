@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "rpcmple/connectionManagerSocketClient.h"
+#include "connectionmanager/tcpSocketClient.h"
 #include "rpcmple/dataPublisher.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -36,17 +36,17 @@ int main(int argc, char** argv) {
 	// Define a uniform integer distribution for integers between 1 and 100
 	std::uniform_int_distribution<> disInt(2, 9);
 
-    auto* mConn = new connectionManagerSocketClient("127.0.0.1", 8088);
+    auto* mConn = new rpcmple::connectionManager::tcpSocketClient("127.0.0.1", 8088);
     if(!mConn->create()) return -1;
 
-    auto* mServer = new dataPublisher(mConn,{'i','s'});
+    auto* mServer = new rpcmple::dataPublisher(mConn,{'i','s'});
 
     mServer->startDataFlowNonBlocking();
 
 	std::vector<std::string> randStringList = {"","apples","frogs","dinosaurs","stones","melons","pens","crocodiles","cars","lizards"};
 
 	for (int i=0;i<100000;i++) {
-		rpcmpleVariantVector arguments;
+		rpcmple::variantVector arguments;
 
 		// Generate a random integer
 		int64_t randomInt = disInt(gen);

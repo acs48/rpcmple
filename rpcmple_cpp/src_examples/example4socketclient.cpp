@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "rpcmple/connectionManagersocketClient.h"
+#include "connectionManager/tcpSocketClient.h"
 #include "rpcmple/rpcClient.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -26,22 +26,22 @@ int main(int argc, char** argv) {
     spdlog::set_default_logger(console);
     spdlog::set_level(spdlog::level::info);
 
-    auto* mConn = new connectionManagerSocketClient("127.0.0.1", 8088);
+    auto* mConn = new rpcmple::connectionManager::tcpSocketClient("127.0.0.1", 8088);
     if(!mConn->create()) return -1;
 
-    auto* mClient = new rpcClient(mConn);
-    mClient->appendSignature(new remoteProcedureSignature(L"Greet",{'s'},{'s'}));
-    mClient->appendSignature(new remoteProcedureSignature(L"Sum",{'I'},{'i'}));
-    mClient->appendSignature(new remoteProcedureSignature(L"Tell",{'i'},{}));
+    auto* mClient = new rpcmple::rpcClient(mConn);
+    mClient->appendSignature(new rpcmple::remoteProcedureSignature(L"Greet",{'s'},{'s'}));
+    mClient->appendSignature(new rpcmple::remoteProcedureSignature(L"Sum",{'I'},{'i'}));
+    mClient->appendSignature(new rpcmple::remoteProcedureSignature(L"Tell",{'i'},{}));
 
     mClient->startDataFlowNonBlocking();
 
-    rpcmpleVariantVector arguments;
-    rpcmpleVariantVector returns;
+    rpcmple::variantVector arguments;
+    rpcmple::variantVector returns;
     arguments.emplace_back("Hello world from client!");
     mClient->call(L"Greet",arguments,returns);
     std::string strRet;
-    getRpcmpleVariantValue(returns[0],&strRet);
+    rpcmple::getVariantValue(returns[0],&strRet);
     spdlog::info("Example4: client got greet: {}\n",strRet);
 
     arguments.clear();
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     arguments.emplace_back(std::vector<int64_t>{1,2,3,4,5,6,7,8,9,10});
     mClient->call(L"Sum",arguments,returns);
     int64_t sum=0;
-    getRpcmpleVariantValue(returns[0],&sum);
+    rpcmple::getVariantValue(returns[0],&sum);
     spdlog::info("Example4: client got sum: {}\n",sum);
 
     arguments.clear();
