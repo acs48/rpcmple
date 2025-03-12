@@ -13,8 +13,8 @@
 // Use of this source code is governed by the MIT license
 // License that can be found in the LICENSE file.
 
-#ifndef CONNECTIONMANAGERSOCKETSERVER_H
-#define CONNECTIONMANAGERSOCKETSERVER_H
+#ifndef CONNECTIONMANAGERTCPSOCKETSERVER_H
+#define CONNECTIONMANAGERTCPSOCKETSERVER_H
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -190,4 +190,4 @@ namespace rpcmple
 }
 
 
-#endif // CONNECTIONMANAGERSOCKETSERVER_H
+#endif // CONNECTIONMANAGERTCPSOCKETSERVER_H

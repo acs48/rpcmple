@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "connectionmanager/tcpSocketClient.h"
+#include "connectionmanager/udpSocket.h"
 #include "rpcmple/dataPublisher.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
 	// Define a uniform integer distribution for integers between 1 and 100
 	std::uniform_int_distribution<> disInt(2, 9);
 
-    auto* mConn = new rpcmple::connectionManager::tcpSocketClient("127.0.0.1", 8088);
+    auto* mConn = new rpcmple::connectionManager::udpSocket(-1, 8088, "127.0.0.1");
     if(!mConn->create()) return -1;
 
     auto* mServer = new rpcmple::dataPublisher(mConn,{'i','s'});

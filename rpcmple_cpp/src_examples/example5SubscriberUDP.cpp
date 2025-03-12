@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "connectionmanager/tcpSocketServer.h"
+#include "connectionmanager/udpSocket.h"
 #include "rpcmple/dataSubscriber.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -23,11 +23,11 @@
 #include <string>
 #include <cstdint>
 
-int main(int argc, char** argv) {
-
-    auto console = spdlog::stdout_color_mt("rpcmple_cpp_example5");
-    spdlog::set_default_logger(console);
-    spdlog::set_level(spdlog::level::info);
+int main(int argc, char** argv)
+{
+	auto console = spdlog::stdout_color_mt("rpcmple_cpp_example5");
+	spdlog::set_default_logger(console);
+	spdlog::set_level(spdlog::level::info);
 
 	// Create a random number engine (Mersenne Twister engine in this case)
 	std::random_device rd; // Seed for the random number engine
@@ -36,27 +36,23 @@ int main(int argc, char** argv) {
 	// Define a uniform integer distribution for integers between 1 and 100
 	std::uniform_int_distribution<> disInt(2, 9);
 
-	auto sServer = rpcmple::connectionManager::startTCPServer(8088);
+	auto* mConn = new rpcmple::connectionManager::udpSocket(8088, -1);
+	if (!mConn->create()) return -1;
 
-	if(sServer) {
-		auto* mConn = new rpcmple::connectionManager::tcpSocketServer(sServer);
-		int cc=0;
+	int cc = 0;
+	auto* mServer = new rpcmple::dataSubscriber(mConn, {'i', 's'}, [&cc](rpcmple::variantVector vals) -> void
+	{
+		int64_t intArg;
+		std::string strArg;
+		int i = 0;
+		if (!rpcmple::getVariantValue(vals[i++], &intArg)) return;
+		if (!rpcmple::getVariantValue(vals[i++], &strArg)) return;
+		spdlog::info("example5: subscriber received {}: {} {}", cc++, intArg, strArg);
+		return;
+	});
 
-	    auto* mServer = new rpcmple::dataSubscriber(mConn,{'i','s'},[&cc](rpcmple::variantVector vals) -> void {
-			int64_t intArg;
-	    	std::string strArg;
+	mServer->startDataFlowBlocking();
 
-	    	int i = 0;
-			if (!rpcmple::getVariantValue(vals[i++], &intArg)) return;
-			if (!rpcmple::getVariantValue(vals[i++], &strArg)) return;
-
-	    	spdlog::info("example5: subscriber received {}: {} {}", cc++, intArg, strArg);
-			return;
-		});
-
-		if(mConn->create()) mServer->startDataFlowBlocking();
-		delete mServer;
-		delete mConn;
-		rpcmple::connectionManager::stopTCPServer(sServer);
-	}
+	delete mServer;
+	delete mConn;
 }

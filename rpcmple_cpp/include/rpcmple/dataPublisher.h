@@ -38,10 +38,11 @@ namespace rpcmple
 		std::condition_variable cv;
 		std::queue<std::vector<uint8_t>> messageStack;
 		bool stopWait;
+		bool groupMessages;
 
 	public:
-		dataPublisher(rpcmple::connectionManager::base* pConn, std::vector<char> signature)
-			: messageManager(pConn, true), mSignature(std::move(signature))
+		dataPublisher(rpcmple::connectionManager::base* pConn, std::vector<char> signature, bool groupMessages = false)
+			: messageManager(pConn, true), mSignature(std::move(signature)), groupMessages(groupMessages)
 		{
 			stopWait = false;
 		}
@@ -84,8 +85,11 @@ namespace rpcmple
 
 				unsigned int offset = 0;
 
-				while (!messageStack.empty() && retMessage.size() < 1024)
+				bool grouping = true;
+
+				while (grouping && !messageStack.empty() && retMessage.size() < 1024)
 				{
+					grouping = !groupMessages;
 					std::vector<uint8_t> stackMessage;
 
 					stackMessage = std::move(messageStack.front());
