@@ -17,6 +17,22 @@ add_executable(rpcmple_cpp_example3 src_examples/example3.cpp)
 target_include_directories(rpcmple_cpp_example3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(rpcmple_cpp_example3 spdlog_lib)
 
+add_executable(rpcmple_cpp_example4socketserver src_examples/example4RPCServerOverTCP.cpp)
+target_include_directories(rpcmple_cpp_example4socketserver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(rpcmple_cpp_example4socketserver spdlog_lib)
+
+add_executable(rpcmple_cpp_example4socketclient src_examples/example4RPCClientOverTCP.cpp)
+target_include_directories(rpcmple_cpp_example4socketclient PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(rpcmple_cpp_example4socketclient spdlog_lib)
+
+add_executable(rpcmple_cpp_example5PublisherOverUDP src_examples/example5PublisherOverUDP.cpp)
+target_include_directories(rpcmple_cpp_example5PublisherOverUDP PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(rpcmple_cpp_example5PublisherOverUDP spdlog_lib)
+
+add_executable(rpcmple_cpp_example5SubscriberOverUDP src_examples/example5SubscriberOverUDP.cpp)
+target_include_directories(rpcmple_cpp_example5SubscriberOverUDP PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(rpcmple_cpp_example5SubscriberOverUDP spdlog_lib)
+
 if (NOT TARGET rpcmple_lib)
     add_library(rpcmple_lib INTERFACE)
     target_include_directories(rpcmple_lib INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)

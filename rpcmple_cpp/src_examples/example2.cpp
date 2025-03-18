@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "rpcmple/connectionManagerStdInOut.h"
+#include "connectionmanager/stdInOutClient.h"
 #include "rpcmple/rpcServer.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -26,16 +26,16 @@ int main(int argc, char** argv) {
     spdlog::set_default_logger(console);
     spdlog::set_level(spdlog::level::info);
 
-    auto* mConn = new connectionManagerStdInOutClient();
+    auto* mConn = new rpcmple::connectionManager::stdInOutClient();
     if(!mConn->create()) return -1;
 
-    auto* mServer = new rpcServer(mConn);
-    mServer->appendSignature(new localProcedureSignature(L"Greet",{'s'},{'s'},[](rpcmpleVariantVector &arguments, rpcmpleVariantVector &returns) -> bool {
+    auto* mServer = new rpcmple::rpcServer(mConn);
+    mServer->appendSignature(new rpcmple::localProcedureSignature(L"Greet",{'s'},{'s'},[](rpcmple::variantVector &arguments, rpcmple::variantVector &returns) -> bool {
         spdlog::info("example2: rpc server received call to function greet");
         std::string strArg;
 
         int i = 0;
-        if (!getRpcmpleVariantValue(arguments[i++], &strArg)) return false;
+        if (!rpcmple::getVariantValue(arguments[i++], &strArg)) return false;
 
         std::string retStr;
         retStr.append("You said: '").append(strArg).append("'; Hello world to you too!");
@@ -44,12 +44,12 @@ int main(int argc, char** argv) {
 
         return true;
     }));
-    mServer->appendSignature(new localProcedureSignature(L"Sum",{'I'},{'i'},[](rpcmpleVariantVector &arguments, rpcmpleVariantVector &returns) -> bool {
+    mServer->appendSignature(new rpcmple::localProcedureSignature(L"Sum",{'I'},{'i'},[](rpcmple::variantVector &arguments, rpcmple::variantVector &returns) -> bool {
         spdlog::info("example2: rpc server received call to function sum");
         std::vector<int64_t> intArrArg;
 
         int i = 0;
-        if (!getRpcmpleVariantValue(arguments[i++], &intArrArg)) return false;
+        if (!rpcmple::getVariantValue(arguments[i++], &intArrArg)) return false;
 
         int64_t retInt=0;
         for(auto j=0; j<intArrArg.size();j++) {

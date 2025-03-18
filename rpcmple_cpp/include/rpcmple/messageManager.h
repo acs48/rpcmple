@@ -16,13 +16,14 @@
 #ifndef MESSAGEMANAGER_H
 #define MESSAGEMANAGER_H
 
-#include "connectionManagerBase.h"
+//#include "connectionmanager/base.h"
 #include "rpcmple.h"
 
 #include <cstdint>
+#include <utility>
 #include <vector>
 #include <thread>
-#include <utility>
+#include <functional>
 
 /* messageManager is a pure virtual class manages the flow of data with another rpcmple on a different process.
  * An implementation of messageManager must override the following methods:
@@ -40,162 +41,212 @@
  * Constructor requires size if local buffer, maximum size of a message, connection through which read and write,
  * indication if this process should send the first message
  */
-class messageManager {
-private:
-    bool isInitialized;
 
-    bool isRequester;
-    bool stopRequested;
+namespace rpcmple
+{
+	class messageManager
+	{
+	private:
+		bool isInitialized;
 
-    connectionManager* mConn;
-    std::vector<uint8_t> readBuffer;
-    std::vector<uint8_t> message;
-    int messageLastIdx;
-    int messageLength;
-    int messageMissingBytes;
+		bool isRequester;
+		bool stopRequested;
 
-    std::thread dataFlowExecuter;
+		rpcmple::connectionManager::base* mConn;
+		std::vector<uint8_t> readBuffer;
+		std::vector<uint8_t> message;
+		//uint32_t maxDatagramSize;
+		uint32_t messageLastIdx;
+		uint32_t messageLength;
+		uint32_t messageMissingBytes;
 
-    void init() {
-        messageLastIdx=0;
-        messageLength=getMessageLen();
-        message.resize(messageLength);
-        messageMissingBytes=messageLength;
-        isInitialized = true;
-    }
+		std::function<void()> onCloseCallback;
 
-    void dataFlow() {
-        if (!isInitialized) {
-            init();
-        }
+		void init()
+		{
+			readBuffer.resize(16777220);
+			messageLastIdx = 0;
+			messageLength = getMessageLen();
+			message.resize(messageLength);
+			messageMissingBytes = messageLength;
+			isInitialized = true;
+		}
 
-        if (isRequester) {
-            spdlog::debug("messageManager: waiting to write first message");
-            std::vector<uint8_t> message;
-            if (!writeMessage(message)) {
-                spdlog::error("messageManager: error generating initial message; stopping flow");
-                stopRequested = true;
-            } else {
-                if (!message.empty()) {
-                    if (!mConn->write(message)) {
-                        spdlog::error("messageManager: error sending initial message; stopping flow");
-                        stopRequested = true;
-                    }
-                }
-            }
-        }
+		void dataFlow()
+		{
+			if (!isInitialized)
+			{
+				init();
+			}
 
-        while (!stopRequested) {
-            spdlog::debug("messageManager: entering main data flow");
-            uint32_t bytesRead = 0;
+			if (isRequester)
+			{
+				spdlog::debug("messageManager: waiting to write first message");
+				std::vector<uint8_t> message;
+				if (!writeMessage(message))
+				{
+					spdlog::error("messageManager: error generating initial message; stopping flow");
+					stopRequested = true;
+				}
+				else
+				{
+					if (!message.empty())
+					{
+						if (message.size() > 16777220)
+						{
+							spdlog::error("messageManager: initial message too large; stopping flow");
+							stopRequested = true;
+						}
+						else
+						{
+							if (!mConn->write(message))
+							{
+								spdlog::error("messageManager: error sending initial message; stopping flow");
+								stopRequested = true;
+							}
+						}
+					}
+				}
+			}
 
-            if (messageLength > 0) {
-                readBuffer.resize(messageMissingBytes);
-                if (!mConn->read(readBuffer, &bytesRead)) {
-                    spdlog::debug("messageManager: cannot read from pipe, stopping flow");
-                    break;
-                }
+			uint32_t bytesRead = 0;
+			uint32_t bytesParsed = 0;
 
-                std::vector<uint8_t> fakeBuffer(readBuffer.begin(), readBuffer.begin() + static_cast<int>(bytesRead));
+			while (!stopRequested)
+			{
+				spdlog::debug("messageManager: entering main data flow");
+				bytesRead = 0;
+				bytesParsed = 0;
 
-                while (!fakeBuffer.empty()) {
-                    int transferredBytes = messageMissingBytes;
-                    if(static_cast<int>(fakeBuffer.size()) < transferredBytes) {
-                        transferredBytes = static_cast<int>(fakeBuffer.size());
-                    }
-                    std::copy(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes, message.begin() + messageLastIdx);
+				if (messageLength > 0)
+				{
+					//readBuffer.resize(messageMissingBytes);
+					if (!mConn->read(readBuffer, &bytesRead))
+					{
+						spdlog::debug("messageManager: cannot read, stopping flow");
+						break;
+					}
 
-                    messageLastIdx += transferredBytes;
-                    messageMissingBytes -= transferredBytes;
-                    fakeBuffer.erase(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes);
+					while (bytesParsed<bytesRead)
+					{
+						uint32_t transferredBytes = messageMissingBytes;
+						if (bytesRead-bytesParsed < transferredBytes)
+						{
+							transferredBytes = bytesRead-bytesParsed;
+						}
+						std::copy(readBuffer.begin() + bytesParsed, readBuffer.begin() + bytesParsed + transferredBytes,
+						          message.begin() + messageLastIdx);
 
-                    if (messageMissingBytes == 0) {
-                        if (!parseMessage({message.begin(), message.begin() + messageLength})) {
-                            spdlog::error("messageManager: error parsing received message; stopping flow");
-                            stopRequested = true;
-                            break;
-                        }
+						messageLastIdx += transferredBytes;
+						messageMissingBytes -= transferredBytes;
+						bytesParsed += transferredBytes;
+						//fakeBuffer.erase(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes);
 
-                        std::vector<uint8_t> replyMessage(1024);
-                        if (!writeMessage(replyMessage)) {
-                            spdlog::error("messageManager: error generating reply message; stopping flow");
-                            stopRequested = true;
-                            break;
-                        }
-                        if (!replyMessage.empty()) {
-                            if (!mConn->write(replyMessage)) {
-                                spdlog::error("messageManager: error sending reply message; stopping flow");
-                                stopRequested = true;
-                                break;
-                            }
-                        }
+						if (messageMissingBytes == 0)
+						{
+							if (!parseMessage({message.begin(), message.begin() + messageLength}))
+							{
+								spdlog::error("messageManager: error parsing received message; stopping flow");
+								stopRequested = true;
+								break;
+							}
 
-                        messageLastIdx = 0;
-                        messageLength = getMessageLen();
-                        message.resize(messageLength);
-                        messageMissingBytes = messageLength;
-                    }
-                }
-            } else {
-                std::vector<uint8_t> message;
-                if (!writeMessage(message)) {
-                    spdlog::error("messageManager: error generating reply message; stopping flow");
-                    stopRequested = true;
-                    break;
-                }
-                if (!message.empty()) {
-                    if (!mConn->write(message)) {
-                        spdlog::error("messageManager: error sending reply message; stopping flow");
-                        stopRequested = true;
-                        break;
-                    }
-                }
+							std::vector<uint8_t> replyMessage(1024);
+							if (!writeMessage(replyMessage))
+							{
+								spdlog::error("messageManager: error generating reply message; stopping flow");
+								stopRequested = true;
+								break;
+							}
+							if (!replyMessage.empty())
+							{
+								if (message.size() > 16777220)
+								{
+									spdlog::error("messageManager: message too large; stopping flow");
+									stopRequested = true;
+									break;
+								}
+								if (!mConn->write(replyMessage))
+								{
+									spdlog::error("messageManager: error sending reply message; stopping flow");
+									stopRequested = true;
+									break;
+								}
+							}
 
-                messageLastIdx = 0;
-                messageLength = getMessageLen();
-                messageMissingBytes = messageLength;
-            }
-        }
-        mConn->close();
-        spdlog::warn("messageManager: flow stopped");
-    }
+							messageLastIdx = 0;
+							messageLength = getMessageLen();
+							message.resize(messageLength);
+							messageMissingBytes = messageLength;
+						}
+					}
+				}
+				else
+				{
+					std::vector<uint8_t> message;
+					if (!writeMessage(message))
+					{
+						spdlog::error("messageManager: error sending reply message; stopping flow");
+						stopRequested = true;
+						break;
+					}
+					if (!message.empty())
+					{
+						if (!mConn->write(message))
+						{
+							spdlog::error("messageManager: error sending reply message; stopping flow");
+							stopRequested = true;
+							break;
+						}
+					}
 
-public:
-    messageManager(connectionManager* pConn, bool requester) {
-        isInitialized=false;
-        stopRequested = false;
+					messageLastIdx = 0;
+					messageLength = getMessageLen();
+					messageMissingBytes = messageLength;
+				}
+			}
+			mConn->close();
+			if (onCloseCallback) onCloseCallback();
+			spdlog::warn("messageManager: flow stopped");
+		}
 
-        isRequester=requester;
-        mConn=pConn;
-    }
-    virtual ~messageManager() {
-        stopRequested=true;
-        if(dataFlowExecuter.joinable()) {
-            dataFlowExecuter.join();
-        }
-    }
+	public:
+		messageManager(rpcmple::connectionManager::base* pConn, bool requester)
+		{
+			isInitialized = false;
+			stopRequested = false;
 
-    virtual bool parseMessage(std::vector<uint8_t> message) =0;
-    virtual int getMessageLen() =0;
-    virtual bool writeMessage(std::vector<uint8_t>& message) =0;
-    virtual void stopParser()=0;
+			isRequester = requester;
+			mConn = pConn;
+		}
 
-    void startDataFlowNonBlocking() {
-        std::thread t(&messageManager::dataFlow, this);
-        dataFlowExecuter = move(t);
-    }
-    void startDataFlowBlocking() {
-        dataFlow();
-    }
+		virtual ~messageManager() = default;
 
-    void stopDataFlow() {
-        stopRequested=true;
-        stopParser();
-        if(dataFlowExecuter.joinable()) {
-            dataFlowExecuter.join();
-        }
-    }
-};
+		virtual bool parseMessage(std::vector<uint8_t> message) =0;
+		virtual int getMessageLen() =0;
+		virtual bool writeMessage(std::vector<uint8_t>& message) =0;
+		virtual void stopParser() =0;
+
+		void startDataFlowNonBlocking(std::function<void()> onCloseCallback = nullptr)
+		{
+			this->onCloseCallback = std::move(onCloseCallback);
+
+			std::thread t(&messageManager::dataFlow, this);
+			t.detach();
+		}
+
+		void startDataFlowBlocking()
+		{
+			dataFlow();
+		}
+
+		void stopDataFlow()
+		{
+			stopRequested = true;
+			stopParser();
+		}
+	};
+}
 
 
 #endif //MESSAGEMANAGER_H

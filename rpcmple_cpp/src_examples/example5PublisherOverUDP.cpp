@@ -13,7 +13,7 @@
 // License that can be found in the LICENSE file.
 
 #include "rpcmple/rpcmple.h"
-#include "connectionmanager/namedPipeClient.h"
+#include "connectionmanager/udpSocket.h"
 #include "rpcmple/dataPublisher.h"
 
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -25,7 +25,7 @@
 
 int main(int argc, char** argv) {
 
-    auto console = spdlog::stdout_color_mt("rpcmple_cpp_example3");
+    auto console = spdlog::stdout_color_mt("rpcmple_cpp_example5");
     spdlog::set_default_logger(console);
     spdlog::set_level(spdlog::level::info);
 
@@ -36,26 +36,27 @@ int main(int argc, char** argv) {
 	// Define a uniform integer distribution for integers between 1 and 100
 	std::uniform_int_distribution<> disInt(2, 9);
 
-    auto* mConn = new rpcmple::connectionManager::namedPipeClient("rpcmple_example3");
+    auto* mConn = new rpcmple::connectionManager::udpSocket(-1, 8088, "127.0.0.1");
     if(!mConn->create()) return -1;
 
-    auto* mServer = new rpcmple::dataPublisher(mConn,{'i','w'});
+    auto* mServer = new rpcmple::dataPublisher(mConn,{'i','s'});
 
     mServer->startDataFlowNonBlocking();
 
-	std::vector<std::wstring> randStringList = {L"",L"apples",L"frogs",L"dinosaurs",L"stones",L"melons",L"pens",L"crocodiles",L"cars",L"lizards"};
+	std::vector<std::string> randStringList = {"","apples","frogs","dinosaurs","stones","melons","pens","crocodiles","cars","lizards"};
 
 	for (int i=0;i<100000;i++) {
 		rpcmple::variantVector arguments;
 
 		// Generate a random integer
 		int64_t randomInt = disInt(gen);
-		std::wstring randomString = randStringList[disInt(gen)-1];
+		std::string randomString = randStringList[disInt(gen)-1];
 
 		arguments.emplace_back(randomInt);
 		arguments.emplace_back(randomString);
 
 	    mServer->publish(arguments);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
 	mServer->waitPublishComplete();

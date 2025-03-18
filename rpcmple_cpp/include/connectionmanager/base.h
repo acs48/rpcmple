@@ -17,21 +17,27 @@
 #ifndef CONNECTIONMANAGER_H
 #define CONNECTIONMANAGER_H
 
-#include "rpcmple.h"
+#include "rpcmple/rpcmple.h"
 
 #include <vector>
 #include <cstdint>
 
-/* connectionManager is pure virtual class defining operation for stream opening, closing, reaing and writing */
-class connectionManager {
-public:
-	connectionManager(){}
-    virtual ~connectionManager()=default;
+namespace rpcmple
+{
+	namespace connectionManager
+	{
+		/* base is pure virtual class defining operation for stream opening, closing, reading and writing */
+		class base {
+		public:
+			base()= default;
+			virtual ~base()=default;
 
-    virtual bool create()=0;
-    virtual bool write(std::vector<uint8_t>&)=0;
-    virtual bool read(std::vector<uint8_t>&, uint32_t*)=0;
-    virtual bool close()=0;
- };
+			virtual bool create()=0;
+			virtual bool write(std::vector<uint8_t>&)=0;
+			virtual bool read(std::vector<uint8_t>&, uint32_t*)=0;
+			virtual bool close()=0;
+		};
+	}
+}
 
 #endif //CONNECTIONMANAGER_H
