@@ -53,10 +53,6 @@ type MessageParser interface {
 
 // MessageManager manages the flow of messages between a connection and a message parser.
 type MessageManager struct {
-	readBuffer  []byte
-	readMessage []byte
-
-	//maxMessageLen       int
 	messageLastIdx      int
 	messageLength       int
 	messageMissingBytes int
@@ -74,8 +70,6 @@ func NewMessageManager(conn io.ReadWriteCloser, parser MessageParser) *MessageMa
 		conn:        conn,
 		requester:   parser.IsRequester(),
 		stopRequest: false,
-		readBuffer:  make([]byte, 0, 1024),
-		readMessage: make([]byte, 0, 1024),
 	}
 
 	mm.messageLastIdx = 0
@@ -85,45 +79,69 @@ func NewMessageManager(conn io.ReadWriteCloser, parser MessageParser) *MessageMa
 }
 
 func (mm *MessageManager) dataFlow() {
-	fakeByte := make([]byte, 1)
-	var fakeBuffer []byte
+	var readBuffer *bytes.Buffer
+	readBufferRaw := make([]byte, 16777220)
+	readMessage := new(bytes.Buffer)
 	replyMessage := new(bytes.Buffer)
 
 	for !mm.stopRequest {
 		if mm.messageLength != 0 {
-			if cap(mm.readBuffer) < mm.messageMissingBytes {
-				mm.readBuffer = make([]byte, mm.messageMissingBytes)
-			} else {
-				mm.readBuffer = mm.readBuffer[:mm.messageMissingBytes]
-			}
-			n, err := mm.conn.Read(mm.readBuffer)
+			n, err := mm.conn.Read(readBufferRaw)
 			if err != nil {
 				if err != io.EOF {
-					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("error reading bytes: %s\\n\", err")
+					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("error reading bytes: %v", err)
 				}
 				break
 			}
-			fakeBuffer = mm.readBuffer[:n]
+			if n == 0 {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("error reading bytes: no bytes received")
+				break
+			}
+			readBuffer = bytes.NewBuffer(readBufferRaw[:n])
 		} else {
-			fakeBuffer = fakeByte
+			readBuffer = bytes.NewBuffer(nil)
+			replyMessage.Reset()
+			if replyOk := mm.parser.SendMessage(replyMessage); !replyOk {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("parser failed to send replyMessage. Stopping flow\n")
+				mm.stopRequest = true
+				break
+			} else {
+				if replyMessage.Len() > 0 {
+					if uint32(replyMessage.Len()) > 16777220 {
+						log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Error("parser generated message is too big: %d, max side %ul", replyMessage.Len(), 16777220)
+						mm.stopRequest = true
+						break
+					}
+
+					if err := binary.Write(mm.conn, binary.LittleEndian, replyMessage.Bytes()); err != nil {
+						log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("error writing bytes: %v", err)
+						mm.stopRequest = true
+						break
+					}
+				}
+			}
+			mm.messageLastIdx = 0
+			mm.messageLength = mm.parser.GetMessageLen()
+			mm.messageMissingBytes = mm.messageLength
 		}
 
-		for len(fakeBuffer) > 0 {
-			if cap(mm.readMessage) < mm.messageLength {
-				mm.readMessage = make([]byte, mm.messageLength)
+		for readBuffer.Len() > 0 {
+			transferredBytes, err := readMessage.Write(readBuffer.Next(mm.messageLength))
+			if err != nil {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("error reading bytes: %v", err)
+				mm.stopRequest = true
+				break
 			}
-			mm.readMessage = mm.readMessage[:mm.messageLength]
-			transferredBytes := copy(mm.readMessage[mm.messageLastIdx:mm.messageLength], fakeBuffer[:])
 			mm.messageLastIdx += transferredBytes
 			mm.messageMissingBytes -= transferredBytes
-			fakeBuffer = fakeBuffer[transferredBytes:]
 
 			if mm.messageMissingBytes == 0 {
-				if success := mm.parser.ParseMessage(mm.readMessage[:mm.messageLength]); !success {
+				if success := mm.parser.ParseMessage(readMessage.Bytes()); !success {
 					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("parser failed to parse message. Stopping flow\n")
 					mm.stopRequest = true
 					break
 				}
+				readMessage.Reset()
 
 				replyMessage.Reset()
 				if replyOk := mm.parser.SendMessage(replyMessage); !replyOk {
@@ -132,9 +150,15 @@ func (mm *MessageManager) dataFlow() {
 					break
 				} else {
 					if replyMessage.Len() > 0 {
-						err := binary.Write(mm.conn, binary.LittleEndian, replyMessage.Bytes())
-						if err != nil {
-							log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("error writing bytes: %v", err)
+						if uint32(replyMessage.Len()) > 16777220 {
+							log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Error("parser generated message is too big: %d, max side %ul", replyMessage.Len(), 16777220)
+							mm.stopRequest = true
+							break
+						}
+						if err := binary.Write(mm.conn, binary.LittleEndian, replyMessage.Bytes()); err != nil {
+							log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("parser failed to send replyMessage. Stopping flow\n")
+							mm.stopRequest = true
+							break
 						}
 					}
 				}
@@ -164,9 +188,14 @@ func (mm *MessageManager) StartDataFlowBlocking() {
 				mm.stopRequest = true
 				return
 			}
-			err := binary.Write(mm.conn, binary.LittleEndian, message.Bytes())
-			if err != nil {
-				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("error writing bytes: %v", err)
+			if uint32(message.Len()) > 16777220 {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Error("parser generated message is too big: %d, max side %ul", message.Len(), 16777220)
+				mm.stopRequest = true
+				return
+			}
+
+			if err := binary.Write(mm.conn, binary.LittleEndian, message.Bytes()); err != nil {
+				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("parser failed to send replyMessage. Stopping flow\n")
 				mm.stopRequest = true
 				return
 			}
@@ -190,9 +219,14 @@ func (mm *MessageManager) StartDataFlowNonBlocking() {
 					mm.stopRequest = true
 					return
 				}
-				err := binary.Write(mm.conn, binary.LittleEndian, message.Bytes())
-				if err != nil {
-					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("messageManager: error writing bytes: %v", err)
+				if uint32(message.Len()) > 16777220 {
+					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Error("parser generated message is too big: %d, max side %ul", message.Len(), 16777220)
+					mm.stopRequest = true
+					return
+				}
+
+				if err := binary.Write(mm.conn, binary.LittleEndian, message.Bytes()); err != nil {
+					log.WithFields(log.Fields{"app": "rpcmple_go", "func": "manager"}).Errorf("parser failed to send replyMessage. Stopping flow\n")
 					mm.stopRequest = true
 					return
 				}

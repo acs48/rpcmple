@@ -174,6 +174,8 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("could not serialize argument: %v: %v\n", uintArrVal, err)
 				return false
 			}
+		case 'w': // string
+			fallthrough
 		case 's': // string
 			if t != reflect.TypeOf("") {
 				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("wrong argument passed to rpc call, expected %v, got %v\n", reflect.TypeOf(""), t)
@@ -195,6 +197,8 @@ func (ds DataSignature) ToBinary(body io.Writer, arguments ...any) bool {
 				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("could not serialize argument: %v: %v\n", strVal, err)
 				return false
 			}
+		case 'W':
+			fallthrough
 		case 'S': // array of string
 			if t != reflect.TypeOf([]string{}) {
 				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("wrong argument passed to rpc call, expected %v, got %v\n", reflect.TypeOf([]string{}), t)
@@ -258,7 +262,7 @@ func (ds DataSignature) FromBinary(mr io.Reader, callbackValues *[]any) bool {
 				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("could not deserialize argument: %v: %v\n", byteVal, err)
 				return false
 			}
-			if byteVal == 'd' || byteVal == 'D' || byteVal == 'i' || byteVal == 'I' || byteVal == 'u' || byteVal == 'U' || byteVal == 's' || byteVal == 'S' {
+			if byteVal == 'd' || byteVal == 'D' || byteVal == 'i' || byteVal == 'I' || byteVal == 'u' || byteVal == 'U' || byteVal == 's' || byteVal == 'S' || byteVal == 'w' || byteVal == 'W' {
 				ret = byteVal
 			} else {
 				log.WithFields(log.Fields{"app": "rpcmple_go", "func": "signature"}).Errorf("invalid signature deserializing variant type: %v\n", ret)
@@ -333,6 +337,8 @@ func (ds DataSignature) FromBinary(mr io.Reader, callbackValues *[]any) bool {
 				return false
 			}
 			(*callbackValues)[i] = uintArr
+		case 'w':
+			fallthrough
 		case 's':
 			var strLen uint16
 			err = binary.Read(mr, binary.LittleEndian, &strLen)
@@ -349,6 +355,8 @@ func (ds DataSignature) FromBinary(mr io.Reader, callbackValues *[]any) bool {
 			}
 			str := string(strRaw)
 			(*callbackValues)[i] = str
+		case 'W':
+			fallthrough
 		case 'S':
 			var strArrLen uint16
 			err = binary.Read(mr, binary.LittleEndian, &strArrLen)
