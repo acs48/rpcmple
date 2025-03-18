@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
 		arguments.emplace_back(randomString);
 
 	    mServer->publish(arguments);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
 	mServer->waitPublishComplete();

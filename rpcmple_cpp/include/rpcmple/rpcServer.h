@@ -16,7 +16,6 @@
 #ifndef RPCMANAGER_H
 #define RPCMANAGER_H
 
-//#include "connectionmanager/base.h"
 #include "messageManager.h"
 #include "dataSignature.h"
 #include "rpcmple.h"

@@ -55,14 +55,16 @@ namespace rpcmple
 		rpcmple::connectionManager::base* mConn;
 		std::vector<uint8_t> readBuffer;
 		std::vector<uint8_t> message;
-		int messageLastIdx;
-		int messageLength;
-		int messageMissingBytes;
+		//uint32_t maxDatagramSize;
+		uint32_t messageLastIdx;
+		uint32_t messageLength;
+		uint32_t messageMissingBytes;
 
 		std::function<void()> onCloseCallback;
 
 		void init()
 		{
+			readBuffer.resize(16777220);
 			messageLastIdx = 0;
 			messageLength = getMessageLen();
 			message.resize(messageLength);
@@ -90,45 +92,55 @@ namespace rpcmple
 				{
 					if (!message.empty())
 					{
-						if (!mConn->write(message))
+						if (message.size() > 16777220)
 						{
-							spdlog::error("messageManager: error sending initial message; stopping flow");
+							spdlog::error("messageManager: initial message too large; stopping flow");
 							stopRequested = true;
+						}
+						else
+						{
+							if (!mConn->write(message))
+							{
+								spdlog::error("messageManager: error sending initial message; stopping flow");
+								stopRequested = true;
+							}
 						}
 					}
 				}
 			}
 
+			uint32_t bytesRead = 0;
+			uint32_t bytesParsed = 0;
+
 			while (!stopRequested)
 			{
 				spdlog::debug("messageManager: entering main data flow");
-				uint32_t bytesRead = 0;
+				bytesRead = 0;
+				bytesParsed = 0;
 
 				if (messageLength > 0)
 				{
-					readBuffer.resize(messageMissingBytes);
+					//readBuffer.resize(messageMissingBytes);
 					if (!mConn->read(readBuffer, &bytesRead))
 					{
 						spdlog::debug("messageManager: cannot read, stopping flow");
 						break;
 					}
 
-					std::vector<uint8_t> fakeBuffer(readBuffer.begin(),
-					                                readBuffer.begin() + static_cast<int>(bytesRead));
-
-					while (!fakeBuffer.empty())
+					while (bytesParsed<bytesRead)
 					{
-						int transferredBytes = messageMissingBytes;
-						if (static_cast<int>(fakeBuffer.size()) < transferredBytes)
+						uint32_t transferredBytes = messageMissingBytes;
+						if (bytesRead-bytesParsed < transferredBytes)
 						{
-							transferredBytes = static_cast<int>(fakeBuffer.size());
+							transferredBytes = bytesRead-bytesParsed;
 						}
-						std::copy(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes,
+						std::copy(readBuffer.begin() + bytesParsed, readBuffer.begin() + bytesParsed + transferredBytes,
 						          message.begin() + messageLastIdx);
 
 						messageLastIdx += transferredBytes;
 						messageMissingBytes -= transferredBytes;
-						fakeBuffer.erase(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes);
+						bytesParsed += transferredBytes;
+						//fakeBuffer.erase(fakeBuffer.begin(), fakeBuffer.begin() + transferredBytes);
 
 						if (messageMissingBytes == 0)
 						{
@@ -148,6 +160,12 @@ namespace rpcmple
 							}
 							if (!replyMessage.empty())
 							{
+								if (message.size() > 16777220)
+								{
+									spdlog::error("messageManager: message too large; stopping flow");
+									stopRequested = true;
+									break;
+								}
 								if (!mConn->write(replyMessage))
 								{
 									spdlog::error("messageManager: error sending reply message; stopping flow");
@@ -168,7 +186,7 @@ namespace rpcmple
 					std::vector<uint8_t> message;
 					if (!writeMessage(message))
 					{
-						spdlog::error("messageManager: error generating reply message; stopping flow");
+						spdlog::error("messageManager: error sending reply message; stopping flow");
 						stopRequested = true;
 						break;
 					}
@@ -192,17 +210,6 @@ namespace rpcmple
 			spdlog::warn("messageManager: flow stopped");
 		}
 
-	protected:
-		//    void joinMe() {
-		//        if (dataFlowExecuter->joinable()) {
-		//            if (dataFlowExecuter->get_id() != std::this_thread::get_id())
-		//            {
-		//                dataFlowExecuter->join();
-		//                joined = true;
-		//            }
-		//        }
-		//    }
-
 	public:
 		messageManager(rpcmple::connectionManager::base* pConn, bool requester)
 		{
@@ -211,18 +218,9 @@ namespace rpcmple
 
 			isRequester = requester;
 			mConn = pConn;
-
-			//dataFlowExecuter = nullptr;
-			//joined = false;
 		}
 
-		virtual ~messageManager()
-		{
-			//        if (dataFlowExecuter) {
-			//            joinMe();
-			//            //delete dataFlowExecuter;
-			//        }
-		};
+		virtual ~messageManager() = default;
 
 		virtual bool parseMessage(std::vector<uint8_t> message) =0;
 		virtual int getMessageLen() =0;

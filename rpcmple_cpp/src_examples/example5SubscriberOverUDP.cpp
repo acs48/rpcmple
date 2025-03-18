@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 		int i = 0;
 		if (!rpcmple::getVariantValue(vals[i++], &intArg)) return;
 		if (!rpcmple::getVariantValue(vals[i++], &strArg)) return;
-		spdlog::info("example5: subscriber received {}: {} {}", cc++, intArg, strArg);
+		spdlog::info("example5: subscriber received {}: {} {}", ++cc, intArg, strArg);
 		return;
 	});
 

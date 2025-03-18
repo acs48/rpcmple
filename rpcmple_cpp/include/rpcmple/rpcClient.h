@@ -17,7 +17,6 @@
 #define RPCCLIENT_H
 
 
-//#include "connectionmanager/base.h"
 #include "messageManager.h"
 #include "dataSignature.h"
 #include "rpcmple.h"

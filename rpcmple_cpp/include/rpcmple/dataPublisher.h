@@ -89,7 +89,7 @@ namespace rpcmple
 
 				while (grouping && !messageStack.empty() && retMessage.size() < 1024)
 				{
-					grouping = !groupMessages;
+					grouping = groupMessages;
 					std::vector<uint8_t> stackMessage;
 
 					stackMessage = std::move(messageStack.front());
