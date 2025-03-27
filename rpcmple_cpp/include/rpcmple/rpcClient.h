@@ -109,7 +109,7 @@ namespace rpcmple
 			remoteProceduresMap[signature->procedureName] = signature->id;
 		}
 
-		bool call(uint32_t rpId, variantVector& arguments, variantVector& returns)
+		bool callSync(uint32_t rpId, variantVector& arguments, variantVector& returns)
 		{
 			auto* proc = remoteProcedures[rpId];
 
@@ -176,8 +176,7 @@ namespace rpcmple
 			return true;
 		}
 
-
-		bool call(std::wstring name, variantVector& arguments, variantVector& returns)
+		bool callSync(std::wstring name, variantVector& arguments, variantVector& returns)
 		{
 			if (remoteProceduresMap.count(name) == 0)
 			{
@@ -186,7 +185,7 @@ namespace rpcmple
 			}
 			uint32_t id = remoteProceduresMap[name];
 
-			return call(id, arguments, returns);
+			return callSync(id, arguments, returns);
 		}
 
 

@@ -69,6 +69,14 @@ int main(int argc, char** argv) {
 
             return true;
         }));
+        mServer->appendSignature(new rpcmple::localProcedureSignature(L"Get",{},{'i'},[](rpcmple::variantVector &arguments, rpcmple::variantVector &returns) -> bool {
+            spdlog::info("example4: rpc server received call to function Get");
+
+            int64_t retInt=12345;
+
+            returns.emplace_back(retInt);
+            return true;
+        }));
 
         if(mConn->create()) mServer->startDataFlowNonBlocking([mConn, mServer]() -> void
             {
